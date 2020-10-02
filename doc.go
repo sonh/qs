@@ -1,9 +1,9 @@
 // Copyright 2020 Son Huynh. All rights reserved.
 
 /*
-Package sonh/qs encodes structs into url.Values.
+Package qs encodes structs into url.Values.
 
-Package qs exports `NewEncoder()` function to create an encoder.
+Package exports `NewEncoder()` function to create an encoder.
 Use `WithTagAlias()` func to register custom tag alias (default is `qs`)
 
 	encoder = qs.NewEncoder(

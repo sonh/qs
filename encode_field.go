@@ -38,7 +38,7 @@ type embedField struct {
 
 func newEmbedField(field reflect.Value, tagName []byte, tagOptions [][]byte) *embedField {
 	embedField := &embedField{
-		baseField : &baseField{
+		baseField: &baseField{
 			name: string(tagName),
 		},
 		cachedFields: make(cachedFields, 0, field.NumField()),
@@ -74,7 +74,7 @@ type listField struct {
 	*baseField
 	cachedField cachedField
 	//cachedFields cachedFields
-	arrayFormat  listFormat
+	arrayFormat listFormat
 }
 
 func (listField *listField) formatFnc(field reflect.Value, result resultFunc) {
@@ -207,7 +207,7 @@ func (boolField *boolField) formatFnc(v reflect.Value, result resultFunc) {
 		v = v.Elem()
 	}
 	b := v.Bool()
-	if !b && boolField.omitEmpty{
+	if !b && boolField.omitEmpty {
 		return
 	}
 	if boolField.useInt {
@@ -223,8 +223,8 @@ func (boolField *boolField) formatFnc(v reflect.Value, result resultFunc) {
 
 func newBoolField(tagName []byte, tagOptions [][]byte) *boolField {
 	field := &boolField{
-		baseField : &baseField{
-			name:        string(tagName),
+		baseField: &baseField{
+			name: string(tagName),
 		},
 	}
 	for _, tagOption := range tagOptions {
@@ -254,7 +254,7 @@ func (intField *intField) formatFnc(value reflect.Value, result resultFunc) {
 		value = value.Elem()
 	}
 	i := value.Int()
-	if i == 0 && intField.omitEmpty  {
+	if i == 0 && intField.omitEmpty {
 		return
 	}
 	result(intField.name, strconv.FormatInt(i, 10))
@@ -262,8 +262,8 @@ func (intField *intField) formatFnc(value reflect.Value, result resultFunc) {
 
 func newIntField(tagName []byte, tagOptions [][]byte) *intField {
 	field := &intField{
-		baseField : &baseField{
-			name:        string(tagName),
+		baseField: &baseField{
+			name: string(tagName),
 		},
 	}
 	for _, tagOption := range tagOptions {
@@ -290,7 +290,7 @@ func (uintField *uintField) formatFnc(value reflect.Value, result resultFunc) {
 		value = value.Elem()
 	}
 	i := value.Uint()
-	if i == 0 && uintField.omitEmpty{
+	if i == 0 && uintField.omitEmpty {
 		return
 	}
 	result(uintField.name, strconv.FormatUint(i, 10))
@@ -298,8 +298,8 @@ func (uintField *uintField) formatFnc(value reflect.Value, result resultFunc) {
 
 func newUintField(tagName []byte, tagOptions [][]byte) *uintField {
 	field := &uintField{
-		baseField : &baseField{
-			name:        string(tagName),
+		baseField: &baseField{
+			name: string(tagName),
 		},
 	}
 	for _, tagOption := range tagOptions {
@@ -334,8 +334,8 @@ func (stringField *stringField) formatFnc(value reflect.Value, result resultFunc
 
 func newStringField(tagName []byte, tagOptions [][]byte) *stringField {
 	field := &stringField{
-		baseField : &baseField{
-			name:        string(tagName),
+		baseField: &baseField{
+			name: string(tagName),
 		},
 	}
 	for _, tagOption := range tagOptions {
@@ -362,7 +362,7 @@ func (float32Field *float32Field) formatFnc(value reflect.Value, result resultFu
 		value = value.Elem()
 	}
 	f := value.Float()
-	if f == 0 && float32Field.omitEmpty{
+	if f == 0 && float32Field.omitEmpty {
 		return
 	}
 	result(float32Field.name, strconv.FormatFloat(f, 'f', -1, 32))
@@ -370,8 +370,8 @@ func (float32Field *float32Field) formatFnc(value reflect.Value, result resultFu
 
 func newFloat32Field(tagName []byte, tagOptions [][]byte) *float32Field {
 	field := &float32Field{
-		baseField : &baseField{
-			name:        string(tagName),
+		baseField: &baseField{
+			name: string(tagName),
 		},
 	}
 	for _, tagOption := range tagOptions {
@@ -406,8 +406,8 @@ func (float64Field *float64Field) formatFnc(v reflect.Value, result resultFunc) 
 
 func newFloat64Field(tagName []byte, tagOptions [][]byte) *float64Field {
 	field := &float64Field{
-		baseField : &baseField{
-			name:        string(tagName),
+		baseField: &baseField{
+			name: string(tagName),
 		},
 	}
 	for _, tagOption := range tagOptions {
@@ -434,7 +434,7 @@ func (complex64Field *complex64Field) formatFnc(v reflect.Value, result resultFu
 		v = v.Elem()
 	}
 	c := v.Complex()
-	if c == 0 && complex64Field.omitEmpty{
+	if c == 0 && complex64Field.omitEmpty {
 		return
 	}
 	result(complex64Field.name, strconv.FormatComplex(c, 'f', -1, 64))
@@ -514,7 +514,7 @@ func (timeField *timeField) formatFnc(v reflect.Value, result resultFunc) {
 	case timeFormatSecond:
 		result(timeField.name, strconv.FormatInt(t.Unix(), 10))
 	case timeFormatMillis:
-		result(timeField.name, strconv.FormatInt(t.UnixNano() / 1000000, 10))
+		result(timeField.name, strconv.FormatInt(t.UnixNano()/1000000, 10))
 	default:
 		result(timeField.name, t.Format(time.RFC3339))
 	}
@@ -542,7 +542,7 @@ func newTimeField(tagName []byte, tagOptions [][]byte) *timeField {
 type customField struct {
 	*baseField
 	tagOptions []string
-	formatter func(val interface{}, opts []string, result func(v string))
+	formatter  func(val interface{}, opts []string, result func(v string))
 }
 
 func (customField *customField) formatFnc(v reflect.Value, result resultFunc) {
@@ -553,7 +553,7 @@ func (customField *customField) formatFnc(v reflect.Value, result resultFunc) {
 
 func newCustomField(tagName []byte, tagOptions [][]byte, formatter func(val interface{}, opts []string, result func(v string))) *customField {
 	opts := make([]string, 0, len(tagOptions))
-	for _, tagOption := range tagOptions{
+	for _, tagOption := range tagOptions {
 		opts = append(opts, string(tagOption))
 	}
 	return &customField{
@@ -562,6 +562,6 @@ func newCustomField(tagName []byte, tagOptions [][]byte, formatter func(val inte
 			omitEmpty: false,
 		},
 		tagOptions: opts,
-		formatter: formatter,
+		formatter:  formatter,
 	}
 }

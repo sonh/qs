@@ -20,7 +20,7 @@ type basicVal struct {
 	Uint16  uint16    `qs:"uint16"`
 	Uint32  uint32    `qs:"uint32"`
 	Uint64  uint64    `qs:"uint64"`
-	Uintptr	uintptr	  `qs:"uintptr"`
+	Uintptr uintptr   `qs:"uintptr"`
 	Float32 float32   `qs:"float32"`
 	Float64 float64   `qs:"float64"`
 	Time    time.Time `qs:"time"`
@@ -197,7 +197,7 @@ func TestEncodeBasicPtr(t *testing.T) {
 	assert.Equal(t, expected, values)
 }
 
-func TestZeroVal(t *testing.T)  {
+func TestZeroVal(t *testing.T) {
 	test := assert.New(t)
 	encoder := NewEncoder()
 
@@ -227,7 +227,7 @@ func TestZeroVal(t *testing.T)  {
 	assert.Equal(t, expected, values)
 }
 
-func TestZeroPtr(t *testing.T)  {
+func TestZeroPtr(t *testing.T) {
 	test := assert.New(t)
 	encoder := NewEncoder()
 
@@ -307,9 +307,9 @@ func TestTimeFormat(t *testing.T) {
 		return
 	}
 	expected := url.Values{
-		"default_fmt":    []string{"1970-01-01T00:10:00Z"},
-		"default_second": []string{"600"},
-		"default_millis": []string{"600000"},
+		"default_fmt":        []string{"1970-01-01T00:10:00Z"},
+		"default_second":     []string{"600"},
+		"default_millis":     []string{"600000"},
 		"default_fmt_ptr":    []string{"1970-01-01T00:10:00Z"},
 		"default_second_ptr": []string{"600"},
 		"default_millis_ptr": []string{"600000"},
@@ -322,9 +322,9 @@ func TestIgnoreEmptySlice(t *testing.T) {
 	encoder := NewEncoder()
 
 	s := struct {
-		A []string	`qs:"a"`
-		B []string	`qs:"b"`
-		C *[]string	`qs:"c"`
+		A []string  `qs:"a"`
+		B []string  `qs:"b"`
+		C *[]string `qs:"c"`
 	}{
 		A: nil,
 		B: []string{},
@@ -466,7 +466,7 @@ func TestArrayFormat_Comma(t *testing.T) {
 		return
 	}
 	expected := url.Values{
-		"str_list":  []string{"a,b,c"},
+		"str_list": []string{"a,b,c"},
 	}
 	assert.Equal(t, expected, values)
 }
@@ -486,7 +486,7 @@ func TestArrayFormat_Repeat(t *testing.T) {
 		return
 	}
 	expected := url.Values{
-		"str_list":  []string{"a", "b", "c"},
+		"str_list": []string{"a", "b", "c"},
 	}
 	assert.Equal(t, expected, values)
 }
@@ -506,7 +506,7 @@ func TestArrayFormat_Bracket(t *testing.T) {
 		return
 	}
 	expected := url.Values{
-		"str_list[]":  []string{"a", "b", "c"},
+		"str_list[]": []string{"a", "b", "c"},
 	}
 	assert.Equal(t, expected, values)
 }
@@ -526,9 +526,9 @@ func TestArrayFormat_Index(t *testing.T) {
 		return
 	}
 	expected := url.Values{
-		"str_list[0]":  []string{"a"},
-		"str_list[1]":  []string{"b"},
-		"str_list[2]":  []string{"c"},
+		"str_list[0]": []string{"a"},
+		"str_list[1]": []string{"b"},
+		"str_list[2]": []string{"c"},
 	}
 	assert.Equal(t, expected, values)
 }
@@ -539,8 +539,8 @@ func TestNestedStruct(t *testing.T) {
 
 	tm := time.Unix(600, 0)
 
-	type Nested struct{
-		Time time.Time	`qs:"time,second"`
+	type Nested struct {
+		Time time.Time `qs:"time,second"`
 	}
 
 	s := struct {
@@ -557,7 +557,7 @@ func TestNestedStruct(t *testing.T) {
 		return
 	}
 	expected := url.Values{
-		"nested[time]":  []string{"600"},
+		"nested[time]": []string{"600"},
 	}
 	assert.Equal(t, expected, values)
 }

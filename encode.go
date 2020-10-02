@@ -15,17 +15,19 @@ const (
 )
 
 var (
-	timeType    = reflect.TypeOf(time.Time{})
+	timeType = reflect.TypeOf(time.Time{})
 )
 
+// EncoderOption provides option for Encoder
 type EncoderOption func(encoder *Encoder)
 
+// Encoder is the main instance
 // Apply options by using WithTagAlias, WithCustomType
 type Encoder struct {
-	tagAlias     string
-	cache        *cacheStore
-	dataPool     *sync.Pool
-	formatters   map[reflect.Type]func(val interface{}, opts []string, result func(v string))
+	tagAlias   string
+	cache      *cacheStore
+	dataPool   *sync.Pool
+	formatters map[reflect.Type]func(val interface{}, opts []string, result func(v string))
 }
 
 type encoder struct {
@@ -35,14 +37,14 @@ type encoder struct {
 	scope  []byte
 }
 
-// Set custom tag alias instead of `qs`
+// WithTagAlias create a option to set custom tag alias instead of `qs`
 func WithTagAlias(tagAlias string) EncoderOption {
 	return func(encoder *Encoder) {
 		encoder.tagAlias = tagAlias
 	}
 }
 
-// Set custom data type
+// WithCustomType create a option to set custom data type
 func WithCustomType(i interface{}, formatter func(val interface{}, opts []string, result func(v string))) EncoderOption {
 	return func(encoder *Encoder) {
 		switch typ := i.(type) {
@@ -54,11 +56,11 @@ func WithCustomType(i interface{}, formatter func(val interface{}, opts []string
 	}
 }
 
-// Init new *Encoder instance
+// NewEncoder init new *Encoder instance
 // Use EncoderOption to apply options
 func NewEncoder(options ...EncoderOption) *Encoder {
 	e := &Encoder{
-		tagAlias: "qs",
+		tagAlias:   "qs",
 		formatters: make(map[reflect.Type]func(val interface{}, opts []string, result func(v string))),
 	}
 
@@ -87,7 +89,7 @@ func NewEncoder(options ...EncoderOption) *Encoder {
 	return e
 }
 
-// Encoding struct into url.Values
+// Values encodes a struct into url.Values
 // v must be struct data type
 func (e *Encoder) Values(v interface{}) (url.Values, error) {
 	val := reflect.ValueOf(v)
@@ -113,7 +115,7 @@ func (e *Encoder) Values(v interface{}) (url.Values, error) {
 	}
 }
 
-// Encoding struct into the given url.Values
+// Encode encodes a struct into the given url.Values
 // v must be struct data type
 func (e *Encoder) Encode(v interface{}, values url.Values) error {
 	val := reflect.ValueOf(v)
