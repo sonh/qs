@@ -1,6 +1,9 @@
 # qs #
+![Build](https://github.com/sonh/qs/workflows/build/badge.svg?branch=main)
+[![Release](https://img.shields.io/github/release/sonh/qs.svg)](https://github.com/sonh/qs/releases/)
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/sonh/qs)](https://pkg.go.dev/github.com/sonh/qs)
 [![Go Report Card](https://goreportcard.com/badge/github.com/sonh/qs)](https://goreportcard.com/report/github.com/sonh/qs)
+[![Go version of a Go module](https://img.shields.io/github/go-mod/go-version/sonh/qs.svg)](https://github.com/sonh/qs)
 
 Package sonh/qs encodes structs into url.Values.
 
