@@ -48,14 +48,14 @@ Example
 Ignoring Fields
 
 	type Struct struct {
-        Field string `form:"-"` //using `-` to to tell qs to ignore fields
-    }
+		Field string `form:"-"` //using `-` to to tell qs to ignore fields
+	}
 
 Omitempty
 
 	type Struct struct {
-		Field1 string `form:",omitempty"` 		//using `omitempty` to to tell qs to omit empty field
-		Field2 *int `form:"field2,omitempty"`
+		Field1 string	`form:",omitempty"` 		//using `omitempty` to to tell qs to omit empty field
+		Field2 *int		`form:"field2,omitempty"`
 	}
 
 By default, package encodes time.Time values as RFC3339 format.
@@ -139,7 +139,7 @@ All nested structs are encoded including the parent value name with brackets for
 	fmt.Println(values.Encode()) //(unescaped) output: "user[from]=1601623397728&user[verified]=true"
 
 Limitation
-	- `interface`\, `[]interface`\, `map` are not supported yet
+	- `interface`, `[]interface`, `map` are not supported yet
 	- `struct`, `slice`/`array` multi-level nesting are limited
 	- no decoder yet
 _Will improve in future versions_

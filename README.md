@@ -7,18 +7,20 @@
 
 Package sonh/qs encodes structs into url.Values.
 
-### Installation
+## Installation
 ```shell
 go get github.com/sonh/qs
 ```
 
-### Usage
+## Usage
 ```go
 import (
     "github.com/sonh/qs"
 )
 ```
-Package qs exports `NewEncoder()` function to create an encoder.
+Package qs exports `NewEncoder()` function to create an encoder. 
+
+Encoder caches struct info to speed up encoding process, use a single instance is highly recommended. 
 
 Use `WithTagAlias()` func to register custom tag alias (default is `qs`)
 ```go
@@ -29,7 +31,7 @@ encoder = qs.NewEncoder(
 
 Encoder has `Values()` and `Encode()` functions to encode structs into `url.Values`.
 
-##### Supported data types:
+### Supported data types:
 - all basic types (`bool`, `uint`, `string`, `float64`,...)
 - `struct`
 - `slice`, `array`
@@ -37,7 +39,7 @@ Encoder has `Values()` and `Encode()` functions to encode structs into `url.Valu
 - `time.Time`   
 - custom type
 
-##### Example
+### Example
 ```go
 type Query struct {
     Tags   []string  `qs:"tags"`
@@ -156,5 +158,5 @@ fmt.Println(values.Encode()) //(unescaped) output: "user[from]=1601623397728&use
 
 _Will improve in future versions_ 
 
-### License
+## License
 Distributed under MIT License, please see license file in code for more details.
