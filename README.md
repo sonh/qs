@@ -1,5 +1,6 @@
 # qs #
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/sonh/qs)](https://pkg.go.dev/github.com/sonh/qs)
+[![Go Report Card](https://goreportcard.com/badge/github.com/sonh/qs)](https://goreportcard.com/report/github.com/sonh/qs)
 
 Package sonh/qs encodes structs into url.Values.
 
