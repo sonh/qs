@@ -142,6 +142,5 @@ Limitation
 	- `interface`, `[]interface`, `map` are not supported yet
 	- `struct`, `slice`/`array` multi-level nesting are limited
 	- no decoder yet
-_Will improve in future versions_
 */
 package qs
