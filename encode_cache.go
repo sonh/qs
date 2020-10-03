@@ -52,8 +52,6 @@ func newCacheFieldByType(typ reflect.Type, tagName []byte, tagOptions [][]byte) 
 
 func newCachedFieldByKind(kind reflect.Kind, tagName []byte, tagOptions [][]byte) cachedField {
 	switch kind {
-	case reflect.Ptr:
-		return nil
 	case reflect.String:
 		return newStringField(tagName, tagOptions)
 	case reflect.Bool:

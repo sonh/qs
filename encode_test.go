@@ -297,7 +297,7 @@ func TestEncodeBasicPtr(t *testing.T) {
 	test.NoError(err)
 
 	actualValues2 := make(url.Values)
-	err = encoder.Encode(s, actualValues2)
+	err = encoder.Encode(&s, actualValues2)
 	test.NoError(err)
 
 	expected := url.Values{
@@ -608,10 +608,14 @@ func TestArrayFormat_Comma(t *testing.T) {
 	test := assert.New(t)
 	encoder := NewEncoder()
 
+	tm := time.Unix(600, 0).UTC()
+
 	s := struct {
-		StringList []string `qs:"str_list,comma"`
+		StringList []string     `qs:"str_list,comma"`
+		Times      []*time.Time `qs:"times,comma"`
 	}{
 		StringList: []string{"a", "b", "c"},
+		Times:      []*time.Time{&tm, nil},
 	}
 	values, err := encoder.Values(s)
 	if err != nil {
@@ -620,6 +624,7 @@ func TestArrayFormat_Comma(t *testing.T) {
 	}
 	expected := url.Values{
 		"str_list": []string{"a,b,c"},
+		"times":    []string{tm.Format(time.RFC3339)},
 	}
 	assert.Equal(t, expected, values)
 }
@@ -628,10 +633,14 @@ func TestArrayFormat_Repeat(t *testing.T) {
 	test := assert.New(t)
 	encoder := NewEncoder()
 
+	tm := time.Unix(600, 0).UTC()
+
 	s := struct {
-		StringList []string `qs:"str_list"`
+		StringList []string     `qs:"str_list"`
+		Times      []*time.Time `qs:"times"`
 	}{
 		StringList: []string{"a", "b", "c"},
+		Times:      []*time.Time{&tm, nil},
 	}
 	values, err := encoder.Values(s)
 	if err != nil {
@@ -640,6 +649,7 @@ func TestArrayFormat_Repeat(t *testing.T) {
 	}
 	expected := url.Values{
 		"str_list": []string{"a", "b", "c"},
+		"times":    []string{tm.Format(time.RFC3339)},
 	}
 	assert.Equal(t, expected, values)
 }
@@ -648,10 +658,14 @@ func TestArrayFormat_Bracket(t *testing.T) {
 	test := assert.New(t)
 	encoder := NewEncoder()
 
+	tm := time.Unix(600, 0).UTC()
+
 	s := struct {
-		StringList []string `qs:"str_list,bracket"`
+		StringList []string     `qs:"str_list,bracket"`
+		Times      []*time.Time `qs:"times,bracket"`
 	}{
 		StringList: []string{"a", "b", "c"},
+		Times:      []*time.Time{&tm, nil},
 	}
 	values, err := encoder.Values(s)
 	if err != nil {
@@ -660,6 +674,7 @@ func TestArrayFormat_Bracket(t *testing.T) {
 	}
 	expected := url.Values{
 		"str_list[]": []string{"a", "b", "c"},
+		"times[]":    []string{tm.Format(time.RFC3339)},
 	}
 	assert.Equal(t, expected, values)
 }
@@ -668,10 +683,14 @@ func TestArrayFormat_Index(t *testing.T) {
 	test := assert.New(t)
 	encoder := NewEncoder()
 
+	tm := time.Unix(600, 0).UTC()
+
 	s := struct {
-		StringList []string `qs:"str_list,index"`
+		StringList []string     `qs:"str_list,index"`
+		Times      []*time.Time `qs:"times,index"`
 	}{
 		StringList: []string{"a", "b", "c"},
+		Times:      []*time.Time{&tm, nil},
 	}
 	values, err := encoder.Values(s)
 	if err != nil {
@@ -682,6 +701,7 @@ func TestArrayFormat_Index(t *testing.T) {
 		"str_list[0]": []string{"a"},
 		"str_list[1]": []string{"b"},
 		"str_list[2]": []string{"c"},
+		"times[0]":    []string{tm.Format(time.RFC3339)},
 	}
 	assert.Equal(t, expected, values)
 }
@@ -692,15 +712,24 @@ func TestNestedStruct(t *testing.T) {
 
 	tm := time.Unix(600, 0)
 
+	type newTime time.Time
+
 	type Nested struct {
-		Time time.Time `qs:"time,second"`
-		Name *string   `qs:"name,omitempty"`
+		Time   time.Time `qs:"time,second"`
+		Name   *string   `qs:"name,omitempty"`
+		NewStr newTime   `qs:"new_time,omitempty"`
 	}
 
 	s := struct {
-		Nested Nested `qs:"nested"`
+		Nested           Nested  `qs:"nested"`
+		NestedOmitNilPtr *Nested `qs:"nested_omit_nil_ptr,omitempty"`
+		NestedNilPtr     *Nested `qs:"nested_ptr"`
+		NestedPtr        *Nested `qs:"nested_ptr"`
 	}{
 		Nested: Nested{
+			Time: tm,
+		},
+		NestedPtr: &Nested{
 			Time: tm,
 		},
 	}
@@ -711,7 +740,9 @@ func TestNestedStruct(t *testing.T) {
 		return
 	}
 	expected := url.Values{
-		"nested[time]": []string{"600"},
+		"nested[time]":     []string{"600"},
+		"nested_ptr[time]": []string{"600"},
+		"nested_ptr":       []string{""},
 	}
 	assert.Equal(t, expected, values)
 }
@@ -737,7 +768,11 @@ func TestEncodeCustomType(t *testing.T) {
 						return
 					}
 				}
-				result(string(*v))
+				if v == nil {
+					result("")
+				} else {
+					result(string(*v))
+				}
 			}
 		}),
 	)
@@ -745,10 +780,11 @@ func TestEncodeCustomType(t *testing.T) {
 	str := newStr("newStrPtr")
 
 	s := struct {
-		NewStr       newStr  `qs:"new_str"`
-		NewStrEmpty  newStr  `qs:"new_str_empty,omitempty"`
-		NewStrPtr    *newStr `qs:"new_str_ptr"`
-		NewStrNilPtr *newStr `qs:"new_str_nil_ptr,omitempty"`
+		NewStr           newStr  `qs:"new_str"`
+		NewStrEmpty      newStr  `qs:"new_str_empty,omitempty"`
+		NewStrPtr        *newStr `qs:"new_str_ptr"`
+		NewStrNilPtr     *newStr `qs:"new_str_nil_ptr"`
+		NewStrOmitNilPtr *newStr `qs:"new_str_omit_nil_ptr,omitempty"`
 	}{
 		NewStr:    "newStr",
 		NewStrPtr: &str,
@@ -758,10 +794,29 @@ func TestEncodeCustomType(t *testing.T) {
 	test.NoError(err)
 
 	expected := url.Values{
-		"new_str":     []string{"newStr"},
-		"new_str_ptr": []string{"newStrPtr"},
+		"new_str":         []string{"newStr"},
+		"new_str_ptr":     []string{"newStrPtr"},
+		"new_str_nil_ptr": []string{""},
 	}
 	test.Equal(expected, values)
+}
+
+func TestEncoderIgnoreUnregisterType(t *testing.T) {
+	test := assert.New(t)
+	encoder := NewEncoder()
+
+	type newStr string
+
+	s := &struct {
+		newStr newStr `qs:"new_str"`
+	}{
+		newStr: "abc",
+	}
+
+	values, err := encoder.Values(s)
+	test.NoError(err)
+
+	test.Equal(url.Values{}, values)
 }
 
 //------------------------------------------------
