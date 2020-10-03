@@ -69,9 +69,7 @@ func NewEncoder(options ...EncoderOption) *Encoder {
 		opt(e)
 	}
 
-	e.cache = &cacheStore{
-		m: make(map[reflect.Type]cachedFields),
-	}
+	e.cache = newCacheStore()
 
 	e.dataPool = &sync.Pool{New: func() interface{} {
 		tagSize := 5
@@ -102,7 +100,7 @@ func (e *Encoder) Values(v interface{}) (url.Values, error) {
 
 	switch val.Kind() {
 	case reflect.Invalid:
-		return nil, nil
+		return nil, errors.Errorf("expects struct input, got %v", val.Kind())
 	case reflect.Struct:
 		enc := e.dataPool.Get().(*encoder)
 		enc.values = make(url.Values)
@@ -128,7 +126,7 @@ func (e *Encoder) Encode(v interface{}, values url.Values) error {
 
 	switch val.Kind() {
 	case reflect.Invalid:
-		return nil
+		return errors.Errorf("expects struct input, got %v", val.Kind())
 	case reflect.Struct:
 		enc := e.dataPool.Get().(*encoder)
 		enc.encodeStruct(val, values, nil)
@@ -257,7 +255,7 @@ func (e *encoder) getTagNameAndOpts(f reflect.StructField) {
 	if len(tag) == 0 {
 		// no tag, using struct field name
 		e.tags[0] = append(e.tags[0], f.Name...)
-		e.tags = e.tags[:2]
+		e.tags = e.tags[:1]
 	} else {
 		// Use first tag as temp
 		e.tags[0] = append(e.tags[0], tag...)

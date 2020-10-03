@@ -10,6 +10,12 @@ type cacheStore struct {
 	mutex sync.RWMutex
 }
 
+func newCacheStore() *cacheStore {
+	return &cacheStore{
+		m: make(map[reflect.Type]cachedFields),
+	}
+}
+
 // Retrieve cachedFields corresponding to reflect.Type
 func (cacheStore *cacheStore) Retrieve(typ reflect.Type) cachedFields {
 	return cacheStore.m[typ]
