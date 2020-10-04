@@ -64,7 +64,21 @@ if err != nil {
 }
 fmt.Println(values.Encode()) //(unescaped) output: "from=2020-02-02T00:00:00Z&limit=24&tags=docker&tags=golang&tags=reactjs"
 ```
+### Bool format
+Use `int` option to encode bool to integer
+```go
+type Query struct {
+    DefaultFmt bool `qs:"default_fmt"`
+    IntFmt     bool `qs:"int_fmt,int"`
+}
 
+querys := &Query{
+    DefaultFmt: true, 
+    IntFmt:     true,
+}
+values, _ := encoder.Values(querys)
+fmt.Println(values.Encode()) // (unescaped) output: "default_fmt=true&int_fmt=1"
+```
 ### Time format
 By default, package encodes time.Time values as RFC3339 format. 
 
