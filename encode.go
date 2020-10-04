@@ -1,7 +1,6 @@
 package qs
 
 import (
-	"bytes"
 	"github.com/pkg/errors"
 	"net/url"
 	"reflect"
@@ -75,7 +74,7 @@ func NewEncoder(options ...EncoderOption) *Encoder {
 		tagSize := 5
 		tags := make([][]byte, 0, tagSize)
 		for i := 0; i < tagSize; i++ {
-			tags = append(tags, make([]byte, 0, 64))
+			tags = append(tags, make([]byte, 0, 56))
 		}
 		return &encoder{
 			e:     e,
@@ -248,28 +247,27 @@ func (e *encoder) getTagNameAndOpts(f reflect.StructField) {
 	tag := f.Tag.Get(e.e.tagAlias)
 
 	// Clear first tag in slice
-	e.tags[0] = e.tags[0][len(e.tags[0]):]
+	e.tags[0] = e.tags[0][:0]
 
 	if len(tag) == 0 {
 		// no tag, using struct field name
-		e.tags[0] = append(e.tags[0], f.Name...)
+		e.tags[0] = append(e.tags[0][:0], f.Name...)
 		e.tags = e.tags[:1]
 	} else {
 		// Use first tag as temp
-		e.tags[0] = append(e.tags[0], tag...)
-		splitTags := bytes.Split(e.tags[0], []byte{','})
+		e.tags[0] = append(e.tags[0][:0], tag...)
 
+		splitTags := strings.Split(tag, ",")
 		e.tags = e.tags[:len(splitTags)]
 
-		if len(splitTags) > 0 {
-			if len(splitTags[0]) == 0 || string(splitTags[0]) == " " {
-				splitTags[0] = append(splitTags[0][len(splitTags[0]):], f.Name...)
-			}
-		}
-
 		for i := 0; i < len(splitTags); i++ {
-			// Clear this tag and set new tag
-			e.tags[i] = append(e.tags[i][len(e.tags[i]):], splitTags[i]...)
+			if i == 0 {
+				if len(splitTags[0]) == 0 {
+					e.tags[0] = append(e.tags[i][:0], f.Name...)
+					continue
+				}
+			}
+			e.tags[i] = append(e.tags[i][:0], splitTags[i]...)
 		}
 	}
 }

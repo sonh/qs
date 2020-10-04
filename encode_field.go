@@ -181,10 +181,6 @@ func (e *encoder) newListField(elemTyp reflect.Type, tagName []byte, tagOptions 
 		}
 	}
 
-	if field, ok := listField.cachedField.(*embedField); ok {
-		e.structCaching(&field.cachedFields, reflect.Zero(elemTyp), nil)
-	}
-
 	switch listField.arrayFormat {
 	case arrayFormatRepeat, arrayFormatBracket:
 		if listField.arrayFormat >= arrayFormatBracket {
@@ -194,9 +190,15 @@ func (e *encoder) newListField(elemTyp reflect.Type, tagName []byte, tagOptions 
 	case arrayFormatIndex:
 		tagName = append(tagName, '[')
 	}
+
 	listField.baseField = &baseField{
 		name: string(tagName),
 	}
+
+	if field, ok := listField.cachedField.(*embedField); ok {
+		e.structCaching(&field.cachedFields, reflect.Zero(elemTyp), nil)
+	}
+
 	return listField
 }
 
