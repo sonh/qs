@@ -36,12 +36,12 @@ type embedField struct {
 	cachedFields cachedFields
 }
 
-func newEmbedField(field reflect.Value, tagName []byte, tagOptions [][]byte) *embedField {
+func newEmbedField(preAlloc int, tagName []byte, tagOptions [][]byte) *embedField {
 	embedField := &embedField{
 		baseField: &baseField{
 			name: string(tagName),
 		},
-		cachedFields: make(cachedFields, 0, field.NumField()),
+		cachedFields: make(cachedFields, 0, preAlloc),
 	}
 	for _, tagOption := range tagOptions {
 		if string(tagOption) == tagOmitEmpty {
@@ -73,7 +73,6 @@ func (embedField *embedField) formatFnc(v reflect.Value, result resultFunc) {
 type listField struct {
 	*baseField
 	cachedField cachedField
-	//cachedFields cachedFields
 	arrayFormat listFormat
 }
 
@@ -134,13 +133,13 @@ func (listField *listField) formatFnc(field reflect.Value, result resultFunc) {
 				v.formatFnc(elemVal, func(name string, val string) {
 					var str strings.Builder
 					str.WriteString(listField.name)
-					//str.WriteByte('[')
-					//str.WriteString(v.name)
-					//str.WriteByte(']')
+					str.WriteString(strconv.FormatInt(int64(count), 10))
+					str.WriteByte(']')
 					str.WriteByte('[')
 					str.WriteString(name)
 					str.WriteByte(']')
 					result(str.String(), val)
+					count++
 				})
 				continue
 			}
@@ -157,8 +156,19 @@ func (listField *listField) formatFnc(field reflect.Value, result resultFunc) {
 }
 
 func (e *encoder) newListField(elemTyp reflect.Type, tagName []byte, tagOptions [][]byte) *listField {
+	removeIdx := -1
+	for i, tagOption := range tagOptions {
+		if string(tagOption) == tagOmitEmpty {
+			removeIdx = i
+		}
+	}
+	if removeIdx > -1 {
+		tagOptions = append(tagOptions[:removeIdx], tagOptions[removeIdx+1:]...)
+	}
 
-	listField := &listField{}
+	listField := &listField{
+		cachedField: e.newCacheFieldByType(elemTyp, nil, tagOptions),
+	}
 
 	for _, tagOption := range tagOptions {
 		switch string(tagOption) {
@@ -171,18 +181,18 @@ func (e *encoder) newListField(elemTyp reflect.Type, tagName []byte, tagOptions 
 		}
 	}
 
+	if field, ok := listField.cachedField.(*embedField); ok {
+		e.structCaching(&field.cachedFields, reflect.Zero(elemTyp), nil)
+	}
+
 	switch listField.arrayFormat {
-	case arrayFormatComma:
-		listField.cachedField = newCacheFieldByType(elemTyp, nil, nil)
 	case arrayFormatRepeat, arrayFormatBracket:
 		if listField.arrayFormat >= arrayFormatBracket {
 			tagName = append(tagName, '[')
 			tagName = append(tagName, ']')
 		}
-		listField.cachedField = newCacheFieldByType(elemTyp, nil, nil)
 	case arrayFormatIndex:
 		tagName = append(tagName, '[')
-		listField.cachedField = newCacheFieldByType(elemTyp, nil, nil)
 	}
 	listField.baseField = &baseField{
 		name: string(tagName),

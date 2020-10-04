@@ -191,6 +191,23 @@ func TestGetTag2(t *testing.T) {
 	test.Equal("ABC", string(e.tags[0]))
 }
 
+func TestGetTag3(t *testing.T) {
+	test := assert.New(t)
+
+	e := NewEncoder().dataPool.Get().(*encoder)
+
+	s := struct {
+		ABC string `qs:",omitempty"`
+	}{}
+
+	field := reflect.TypeOf(s).Field(0)
+	e.getTagNameAndOpts(field)
+
+	test.Len(e.tags, 2)
+	test.Equal("ABC", string(e.tags[0]))
+	test.Equal("omitempty", string(e.tags[1]))
+}
+
 func TestEncodeInvalidValue(t *testing.T) {
 	test := assert.New(t)
 	encoder := NewEncoder()
@@ -392,12 +409,10 @@ func TestZeroPtr(t *testing.T) {
 func TestOmitZeroVal(t *testing.T) {
 	test := assert.New(t)
 	encoder := NewEncoder()
+
 	values, err := encoder.Values(basicValWithOmit{})
-	if err != nil {
-		test.FailNow(err.Error())
-		return
-	}
-	assert.Equal(t, url.Values{}, values)
+	test.NoError(err)
+	test.Equal(url.Values{}, values)
 }
 
 func TestOmitZeroPtr(t *testing.T) {
@@ -405,11 +420,8 @@ func TestOmitZeroPtr(t *testing.T) {
 	encoder := NewEncoder()
 
 	values, err := encoder.Values(basicPtrWithOmit{})
-	if err != nil {
-		test.FailNow(err.Error())
-		return
-	}
-	assert.Equal(t, url.Values{}, values)
+	test.NoError(err)
+	test.Equal(url.Values{}, values)
 }
 
 func TestIgnoreEmptySlice(t *testing.T) {
@@ -588,8 +600,9 @@ func TestBoolFormat(t *testing.T) {
 	encoder := NewEncoder()
 
 	s := struct {
-		Bool1 bool `qs:"bool_1,int"`
-		Bool2 bool `qs:"bool_2,int"`
+		Bool1   bool  `qs:"bool_1,int"`
+		Bool2   bool  `qs:"bool_2,int"`
+		NilBool *bool `qs:",omitempty"`
 	}{
 		Bool2: true,
 	}
@@ -688,9 +701,11 @@ func TestArrayFormat_Index(t *testing.T) {
 	s := struct {
 		StringList []string     `qs:"str_list,index"`
 		Times      []*time.Time `qs:"times,index"`
+		NilSlice   *[]int       `qs:",omitempty"`
 	}{
 		StringList: []string{"a", "b", "c"},
 		Times:      []*time.Time{&tm, nil},
+		NilSlice:   nil,
 	}
 	values, err := encoder.Values(s)
 	if err != nil {
@@ -721,10 +736,11 @@ func TestNestedStruct(t *testing.T) {
 	}
 
 	s := struct {
-		Nested           Nested  `qs:"nested"`
-		NestedOmitNilPtr *Nested `qs:"nested_omit_nil_ptr,omitempty"`
-		NestedNilPtr     *Nested `qs:"nested_ptr"`
-		NestedPtr        *Nested `qs:"nested_ptr"`
+		Nested           Nested   `qs:"nested"`
+		NestedOmitNilPtr *Nested  `qs:"nested_omit_nil_ptr,omitempty"`
+		NestedNilPtr     *Nested  `qs:"nested_ptr"`
+		NestedPtr        *Nested  `qs:"nested_ptr"`
+		NestedList       []Nested `qs:"nest_list,index"`
 	}{
 		Nested: Nested{
 			Time: tm,
@@ -732,17 +748,25 @@ func TestNestedStruct(t *testing.T) {
 		NestedPtr: &Nested{
 			Time: tm,
 		},
+		NestedList: []Nested{
+			{
+				Time: tm,
+				Name: withStr("abc"),
+			},
+		},
 	}
 
-	values, err := encoder.Values(s)
+	values, err := encoder.Values(&s)
 	if err != nil {
 		test.FailNow(err.Error())
 		return
 	}
 	expected := url.Values{
-		"nested[time]":     []string{"600"},
-		"nested_ptr[time]": []string{"600"},
-		"nested_ptr":       []string{""},
+		"nested[time]":       []string{"600"},
+		"nested_ptr[time]":   []string{"600"},
+		"nested_ptr":         []string{""},
+		"nest_list[0][time]": []string{"600"},
+		"nest_list[1][name]": []string{"abc"},
 	}
 	assert.Equal(t, expected, values)
 }
@@ -808,9 +832,11 @@ func TestEncoderIgnoreUnregisterType(t *testing.T) {
 	type newStr string
 
 	s := &struct {
-		newStr newStr `qs:"new_str"`
+		newStr     newStr `qs:"new_str"`
+		newStrList []newStr
 	}{
-		newStr: "abc",
+		newStr:     "abc",
+		newStrList: []newStr{newStr("a")},
 	}
 
 	values, err := encoder.Values(s)

@@ -25,11 +25,12 @@ func TestCacheStore(t *testing.T) {
 
 func TestNewCacheField(t *testing.T) {
 	test := assert.New(t)
+	e := NewEncoder()
 
 	name := []byte(`abc`)
 	opts := [][]byte{[]byte(`omitempty`)}
 
-	cacheField := newCachedFieldByKind(reflect.ValueOf("").Kind(), name, opts)
+	cacheField := e.dataPool.Get().(*encoder).newCachedFieldByKind(reflect.ValueOf("").Kind(), name, opts)
 	if stringField, ok := cacheField.(*stringField); ok {
 		test.Equal(string(name), stringField.name)
 		test.True(stringField.omitEmpty)
@@ -37,4 +38,13 @@ func TestNewCacheField(t *testing.T) {
 		test.FailNow("")
 	}
 	test.IsType(&stringField{}, cacheField)
+}
+
+func TestNewCacheField2(t *testing.T) {
+	test := assert.New(t)
+	e := NewEncoder()
+
+	var strPtr *string
+	cacheField := e.dataPool.Get().(*encoder).newCachedFieldByKind(reflect.ValueOf(strPtr).Kind(), nil, nil)
+	test.Nil(cacheField)
 }

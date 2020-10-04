@@ -226,7 +226,7 @@ func (e *encoder) structCaching(fields *cachedFields, stVal reflect.Value, scope
 			e.scope = e.scope[:0]
 			e.scope = append(e.scope, e.tags[0]...)
 			// New embed field
-			field := newEmbedField(fieldVal, e.tags[0], e.tags[1:])
+			field := newEmbedField(fieldVal.NumField(), e.tags[0], e.tags[1:])
 			*fields = append(*fields, field)
 			// Recursive
 			e.structCaching(&field.cachedFields, fieldVal, e.scope)
@@ -237,10 +237,8 @@ func (e *encoder) structCaching(fields *cachedFields, stVal reflect.Value, scope
 				elemType = elemType.Elem()
 			}
 			*fields = append(*fields, e.newListField(elemType, e.tags[0], e.tags[1:]))
-		case reflect.Ptr:
-			*fields = append(*fields, nil)
 		default:
-			*fields = append(*fields, newCachedFieldByKind(fieldTyp.Kind(), e.tags[0], e.tags[1:]))
+			*fields = append(*fields, e.newCachedFieldByKind(fieldTyp.Kind(), e.tags[0], e.tags[1:]))
 		}
 	}
 }
@@ -250,7 +248,7 @@ func (e *encoder) getTagNameAndOpts(f reflect.StructField) {
 	tag := f.Tag.Get(e.e.tagAlias)
 
 	// Clear first tag in slice
-	e.tags[0] = e.tags[0][:0]
+	e.tags[0] = e.tags[0][len(e.tags[0]):]
 
 	if len(tag) == 0 {
 		// no tag, using struct field name
@@ -262,10 +260,16 @@ func (e *encoder) getTagNameAndOpts(f reflect.StructField) {
 		splitTags := bytes.Split(e.tags[0], []byte{','})
 
 		e.tags = e.tags[:len(splitTags)]
+
+		if len(splitTags) > 0 {
+			if len(splitTags[0]) == 0 || string(splitTags[0]) == " " {
+				splitTags[0] = append(splitTags[0][len(splitTags[0]):], f.Name...)
+			}
+		}
+
 		for i := 0; i < len(splitTags); i++ {
 			// Clear this tag and set new tag
-			e.tags[i] = e.tags[i][:0]
-			e.tags[i] = append(e.tags[i], splitTags[i]...)
+			e.tags[i] = append(e.tags[i][len(e.tags[i]):], splitTags[i]...)
 		}
 	}
 }

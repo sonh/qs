@@ -41,16 +41,16 @@ type (
 	cachedFields []cachedField
 )
 
-func newCacheFieldByType(typ reflect.Type, tagName []byte, tagOptions [][]byte) cachedField {
+func (e *encoder) newCacheFieldByType(typ reflect.Type, tagName []byte, tagOptions [][]byte) cachedField {
 	switch typ {
 	case timeType:
 		return newTimeField(tagName, tagOptions)
 	default:
-		return newCachedFieldByKind(typ.Kind(), tagName, tagOptions)
+		return e.newCachedFieldByKind(typ.Kind(), tagName, tagOptions)
 	}
 }
 
-func newCachedFieldByKind(kind reflect.Kind, tagName []byte, tagOptions [][]byte) cachedField {
+func (e *encoder) newCachedFieldByKind(kind reflect.Kind, tagName []byte, tagOptions [][]byte) cachedField {
 	switch kind {
 	case reflect.String:
 		return newStringField(tagName, tagOptions)
@@ -68,6 +68,8 @@ func newCachedFieldByKind(kind reflect.Kind, tagName []byte, tagOptions [][]byte
 		return newComplex64Field(tagName, tagOptions)
 	case reflect.Complex128:
 		return newComplex128Field(tagName, tagOptions)
+	case reflect.Struct:
+		return newEmbedField(0, e.tags[0], e.tags[1:])
 	default:
 		return nil
 	}
