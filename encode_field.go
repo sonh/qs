@@ -77,13 +77,11 @@ type listField struct {
 }
 
 func (listField *listField) formatFnc(field reflect.Value, result resultFunc) {
+
 	switch listField.arrayFormat {
 	case arrayFormatComma:
 		var str strings.Builder
 		for i := 0; i < field.Len(); i++ {
-			if listField.cachedField == nil {
-				return
-			}
 			elemVal := field.Index(i)
 			for elemVal.Kind() == reflect.Ptr {
 				elemVal = elemVal.Elem()
@@ -101,9 +99,6 @@ func (listField *listField) formatFnc(field reflect.Value, result resultFunc) {
 		result(listField.name, str.String())
 	case arrayFormatRepeat, arrayFormatBracket:
 		for i := 0; i < field.Len(); i++ {
-			if listField.cachedField == nil {
-				return
-			}
 			elemVal := field.Index(i)
 			for elemVal.Kind() == reflect.Ptr {
 				elemVal = elemVal.Elem()
@@ -118,10 +113,6 @@ func (listField *listField) formatFnc(field reflect.Value, result resultFunc) {
 	case arrayFormatIndex:
 		count := 0
 		for i := 0; i < field.Len(); i++ {
-			if listField.cachedField == nil {
-				return
-			}
-
 			elemVal := field.Index(i)
 			for elemVal.Kind() == reflect.Ptr {
 				elemVal = elemVal.Elem()
@@ -167,7 +158,7 @@ func (e *encoder) newListField(elemTyp reflect.Type, tagName []byte, tagOptions 
 	}
 
 	listField := &listField{
-		cachedField: e.newCacheFieldByType(elemTyp, nil, tagOptions),
+		cachedField: newCacheFieldByType(elemTyp, nil, tagOptions),
 	}
 
 	for _, tagOption := range tagOptions {
@@ -576,4 +567,56 @@ func newCustomField(tagName []byte, tagOptions [][]byte, formatter func(val inte
 		tagOptions: opts,
 		formatter:  formatter,
 	}
+}
+
+type interfaceField struct {
+	*baseField
+	tagName    []byte
+	tagOptions [][]byte
+	fieldMap   map[reflect.Type]cachedField
+}
+
+func (interfaceField *interfaceField) formatFnc(v reflect.Value, result resultFunc) {
+
+	v = v.Elem()
+
+	for v.Kind() == reflect.Ptr {
+		v = v.Elem()
+	}
+
+	if !v.IsValid() {
+		if !interfaceField.omitEmpty {
+			result(interfaceField.name, "")
+		}
+		return
+	}
+
+	if field := interfaceField.fieldMap[v.Type()]; field == nil {
+		interfaceField.fieldMap[v.Type()] = newCacheFieldByType(v.Type(), interfaceField.tagName, interfaceField.tagOptions)
+	}
+	if field := interfaceField.fieldMap[v.Type()]; field != nil {
+		field.formatFnc(v, result)
+	}
+}
+
+func newInterfaceField(tagName []byte, tagOptions [][]byte) *interfaceField {
+	copiedTagName := make([]byte, len(tagName))
+	copy(copiedTagName, tagName)
+	copiedTagOptions := make([][]byte, len(tagOptions))
+	copy(copiedTagOptions, tagOptions)
+
+	field := &interfaceField{
+		baseField: &baseField{
+			name: string(copiedTagName),
+		},
+		tagName:    copiedTagName,
+		tagOptions: copiedTagOptions,
+		fieldMap:   make(map[reflect.Type]cachedField, 5),
+	}
+	for _, tagOption := range tagOptions {
+		if string(tagOption) == tagOmitEmpty {
+			field.omitEmpty = true
+		}
+	}
+	return field
 }

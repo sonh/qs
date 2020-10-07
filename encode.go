@@ -154,6 +154,10 @@ func (e *encoder) encodeStruct(stVal reflect.Value, values url.Values, scope []b
 			// skip field
 			continue
 		case *listField:
+			if cachedFld.cachedField == nil {
+				//data type is not supported
+				continue
+			}
 			if cachedFld.arrayFormat <= arrayFormatBracket {
 				// With cachedFld type is slice/array, only accept non-nil value
 				for stFldVal.Kind() == reflect.Ptr {
@@ -169,6 +173,7 @@ func (e *encoder) encodeStruct(stVal reflect.Value, values url.Values, scope []b
 				values[cachedFld.name] = make([]string, 0, stFldVal.Len())
 			}
 		}
+
 		// format value
 		cachedFld.formatFnc(stFldVal, func(name string, val string) {
 			values[name] = append(values[name], val)
@@ -237,7 +242,7 @@ func (e *encoder) structCaching(fields *cachedFields, stVal reflect.Value, scope
 			}
 			*fields = append(*fields, e.newListField(elemType, e.tags[0], e.tags[1:]))
 		default:
-			*fields = append(*fields, e.newCachedFieldByKind(fieldTyp.Kind(), e.tags[0], e.tags[1:]))
+			*fields = append(*fields, newCachedFieldByKind(fieldTyp.Kind(), e.tags[0], e.tags[1:]))
 		}
 	}
 }

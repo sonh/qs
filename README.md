@@ -1,10 +1,10 @@
 # qs #
 ![build](https://github.com/sonh/qs/workflows/build/badge.svg?branch=main)
 [![codecov](https://codecov.io/gh/sonh/qs/branch/main/graph/badge.svg)](https://codecov.io/gh/sonh/qs)
+[![GoReportCard](https://goreportcard.com/badge/github.com/sonh/qs)](https://goreportcard.com/report/github.com/sonh/qs)
 [![release](https://img.shields.io/github/release/sonh/qs.svg)](https://github.com/sonh/qs/releases/)
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/sonh/qs)](https://pkg.go.dev/github.com/sonh/qs)
-[![GoReportCard](https://goreportcard.com/badge/github.com/sonh/qs)](https://goreportcard.com/report/github.com/sonh/qs)
-[![GoVersionOfGoMod](https://img.shields.io/github/go-mod/go-version/sonh/qs.svg)](https://github.com/sonh/qs)
+[![MIT license](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/sonh/qs/blob/main/LICENSE)
 
 Package sonh/qs encodes structs into url.Values.
 
@@ -167,7 +167,7 @@ fmt.Println(values.Encode()) //(unescaped) output: "user[from]=1601623397728&use
 ```
 
 ### Limitation
-- `interface`\, `[]interface`\, `map` are not supported yet
+- `map` is not supported yet
 - `struct`, `slice/array` multi-level nesting are limited
 - no decoder yet
 

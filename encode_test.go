@@ -825,18 +825,49 @@ func TestEncodeCustomType(t *testing.T) {
 	test.Equal(expected, values)
 }
 
+func TestEncodeInterface(t *testing.T) {
+	test := assert.New(t)
+	encoder := NewEncoder()
+
+	s := &struct {
+		String     interface{} `qs:"string"`
+		Bool       interface{} `qs:"bool"`
+		Int        interface{} `qs:"int"`
+		EmptyFloat interface{} `qs:"float,omitempty"`
+		NilPtr     interface{} `qs:"nil_ptr"`
+		OmitNilPtr interface{} `qs:"omit_nil_ptr,omitempty"`
+	}{
+		String: "abc",
+		Bool:   true,
+		Int:    withInt(5),
+		NilPtr: nil,
+	}
+
+	values, err := encoder.Values(&s)
+	test.NoError(err)
+
+	expected := url.Values{
+		"string":  []string{"abc"},
+		"bool":    []string{"true"},
+		"int":     []string{"5"},
+		"nil_ptr": []string{""},
+	}
+	test.Equal(expected, values)
+}
+
 func TestEncoderIgnoreUnregisterType(t *testing.T) {
 	test := assert.New(t)
 	encoder := NewEncoder()
 
-	type newStr string
-
-	s := &struct {
-		newStr     newStr `qs:"new_str"`
-		newStrList []newStr
+	s := struct {
+		Fn  []func()        `qs:"fn,bracket"`
+		Ch  []chan struct{} `qs:"chan,comma"`
+		Ch2 []chan struct{} `qs:"chan2,index"`
+		Ch3 []chan struct{} `qs:"chan3"`
 	}{
-		newStr:     "abc",
-		newStrList: []newStr{newStr("a")},
+		Fn:  []func(){func() {}},
+		Ch:  []chan struct{}{make(chan struct{})},
+		Ch2: []chan struct{}{make(chan struct{})},
 	}
 
 	values, err := encoder.Values(s)
