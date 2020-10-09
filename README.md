@@ -1,10 +1,10 @@
 # qs #
-![build](https://github.com/sonh/qs/workflows/build/badge.svg?branch=main)
-[![codecov](https://codecov.io/gh/sonh/qs/branch/main/graph/badge.svg)](https://codecov.io/gh/sonh/qs)
+[![Build](https://github.com/sonh/qs/workflows/build/badge.svg?branch=main)](https://github.com/sonh/qs/actions)
+[![Codecov](https://codecov.io/gh/sonh/qs/branch/main/graph/badge.svg)](https://codecov.io/gh/sonh/qs)
 [![GoReportCard](https://goreportcard.com/badge/github.com/sonh/qs)](https://goreportcard.com/report/github.com/sonh/qs)
-[![release](https://img.shields.io/github/release/sonh/qs.svg)](https://github.com/sonh/qs/releases/)
+[![Release](https://img.shields.io/github/release/sonh/qs.svg?color=brightgreen)](https://github.com/sonh/qs/releases/)
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/sonh/qs)](https://pkg.go.dev/github.com/sonh/qs)
-[![MIT license](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/sonh/qs/blob/main/LICENSE)
+[![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/sonh/qs/blob/main/LICENSE)
 
 Package sonh/qs encodes structs into url.Values.
 
@@ -57,7 +57,7 @@ query := &Query{
     Ignore: 0,
 }
 
-encoder = qs.NewEncoder()
+encoder := qs.NewEncoder()
 values, err := encoder.Values(query)
 if err != nil {
     // Handle error
@@ -98,7 +98,7 @@ query := &Query{
     Decimal: decimal.NewFromFloat(0.012147483648),
 }
 
-encoder = qs.NewEncoder()
+encoder := qs.NewEncoder()
 values, _ := encoder.Values(query)
 fmt.Println(values.Encode()) // (unescaped) output: "default_fmt=2020-02-02T00:00:00Z&millis_fmt=1580601600000&second_fmt=1580601600"
 ```
