@@ -72,11 +72,11 @@ type Query struct {
     IntFmt     bool `qs:"int_fmt,int"`
 }
 
-querys := &Query{
+query := &Query{
     DefaultFmt: true, 
     IntFmt:     true,
 }
-values, _ := encoder.Values(querys)
+values, _ := encoder.Values(query)
 fmt.Println(values.Encode()) // (unescaped) output: "default_fmt=true&int_fmt=1"
 ```
 ### Time format
@@ -95,7 +95,6 @@ query := &Query{
     Default: t,
     Second:  t,
     Millis:  t,
-    Decimal: decimal.NewFromFloat(0.012147483648),
 }
 
 encoder := qs.NewEncoder()
@@ -156,13 +155,13 @@ type Query struct {
     User User `qs:"user"`
 }
 
-querys := Query{
+query := Query{
     User: User{
         Verified: true,
         From: time.Now(),
     },
 }
-values, _ := encoder.Values(querys)
+values, _ := encoder.Values(query)
 fmt.Println(values.Encode()) //(unescaped) output: "user[from]=1601623397728&user[verified]=true"
 ```
 

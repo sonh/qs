@@ -11,8 +11,8 @@ type Query struct {
 	Limit  int       `qs:"limit"`
 	From   time.Time `qs:"from"`
 	Open   bool      `qs:"open,int"`
-	Active bool      `qs:"active,omitempty"` 	//omit empty value
-	Ignore float64   `qs:"-"` 					//ignore
+	Active bool      `qs:"active,omitempty"` //omit empty value
+	Ignore float64   `qs:"-"`                //ignore
 }
 
 func main() {
