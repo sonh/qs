@@ -193,6 +193,51 @@ func (e *encoder) newListField(elemTyp reflect.Type, tagName []byte, tagOptions 
 	return listField
 }
 
+type mapField struct {
+	*baseField
+	cachedKeyField   cachedField
+	cachedValueField cachedField
+}
+
+func (mapField *mapField) formatFnc(field reflect.Value, result resultFunc) {
+	mapRange := field.MapRange()
+	fieldName := make([]byte, 0, 36)
+	fieldName = append(fieldName, mapField.name...)
+
+	for mapRange.Next() {
+		fieldName = fieldName[:len(mapField.name)]
+		mapField.cachedKeyField.formatFnc(mapRange.Key(), func(_ string, val string) {
+			fieldName = append(fieldName, '[')
+			fieldName = append(fieldName, val...)
+			fieldName = append(fieldName, ']')
+		})
+		mapField.cachedValueField.formatFnc(mapRange.Value(), func(_ string, val string) {
+			result(string(fieldName), val)
+		})
+	}
+}
+
+func newMapField(keyType reflect.Type, valueType reflect.Type, tagName []byte, tagOptions [][]byte) *mapField {
+	removeIdx := -1
+	for i, tagOption := range tagOptions {
+		if string(tagOption) == tagOmitEmpty {
+			removeIdx = i
+		}
+	}
+	if removeIdx > -1 {
+		tagOptions = append(tagOptions[:removeIdx], tagOptions[removeIdx+1:]...)
+	}
+
+	field := &mapField{
+		baseField: &baseField{
+			name: string(tagName),
+		},
+		cachedKeyField:   newCacheFieldByType(keyType, nil, nil),
+		cachedValueField: newCacheFieldByType(valueType, nil, nil),
+	}
+	return field
+}
+
 //
 type boolField struct {
 	*baseField

@@ -153,6 +153,20 @@ func (e *encoder) encodeStruct(stVal reflect.Value, values url.Values, scope []b
 		case nil:
 			// skip field
 			continue
+		case *mapField:
+			if cachedFld.cachedKeyField == nil || cachedFld.cachedValueField == nil {
+				//data type is not supported
+				continue
+			}
+			for stFldVal.Kind() == reflect.Ptr {
+				stFldVal = stFldVal.Elem()
+			}
+			if !stFldVal.IsValid() {
+				continue
+			}
+			if stFldVal.Len() == 0 {
+				continue
+			}
 		case *listField:
 			if cachedFld.cachedField == nil {
 				//data type is not supported
@@ -241,6 +255,16 @@ func (e *encoder) structCaching(fields *cachedFields, stVal reflect.Value, scope
 				elemType = elemType.Elem()
 			}
 			*fields = append(*fields, e.newListField(elemType, e.tags[0], e.tags[1:]))
+		case reflect.Map:
+			keyType := fieldTyp.Key()
+			for keyType.Kind() == reflect.Ptr {
+				keyType = keyType.Elem()
+			}
+			valueType := fieldTyp.Elem()
+			for valueType.Kind() == reflect.Ptr {
+				valueType = valueType.Elem()
+			}
+			*fields = append(*fields, newMapField(keyType, valueType, e.tags[0], e.tags[1:]))
 		default:
 			*fields = append(*fields, newCachedFieldByKind(fieldTyp.Kind(), e.tags[0], e.tags[1:]))
 		}

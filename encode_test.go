@@ -855,15 +855,45 @@ func TestEncodeInterface(t *testing.T) {
 	test.Equal(expected, values)
 }
 
+func TestEncodeMap(t *testing.T) {
+	test := assert.New(t)
+	encoder := NewEncoder()
+
+	s := struct {
+		Map       map[string]bool    `qs:"map,int,omitempty"`
+		PtrMap    map[string]*bool   `qs:"ptr_map"`
+		NilMap    map[string]int     `qs:"nil_map"`
+		NilPtrMap *map[string]int    `qs:"nil_ptr_map"`
+		EmptyMap  map[*string]string `qs:"empty_map"`
+	}{
+		Map: map[string]bool{
+			"abc": true,
+		},
+		PtrMap: map[string]*bool{
+			"xyz": withBool(false),
+		},
+		EmptyMap: make(map[*string]string),
+	}
+	values, err := encoder.Values(s)
+	test.NoError(err)
+
+	expected := url.Values{
+		"map[abc]":     []string{"true"},
+		"ptr_map[xyz]": []string{"false"},
+	}
+	test.Equal(expected, values)
+}
+
 func TestEncoderIgnoreUnregisterType(t *testing.T) {
 	test := assert.New(t)
 	encoder := NewEncoder()
 
 	s := struct {
-		Fn  []func()        `qs:"fn,bracket"`
-		Ch  []chan struct{} `qs:"chan,comma"`
-		Ch2 []chan struct{} `qs:"chan2,index"`
-		Ch3 []chan struct{} `qs:"chan3"`
+		Fn  []func()             `qs:"fn,bracket"`
+		Ch  []chan struct{}      `qs:"chan,comma"`
+		Ch2 []chan struct{}      `qs:"chan2,index"`
+		Ch3 []chan struct{}      `qs:"chan3"`
+		Ch4 map[chan bool]func() `qs:"chan4"`
 	}{
 		Fn:  []func(){func() {}},
 		Ch:  []chan struct{}{make(chan struct{})},
