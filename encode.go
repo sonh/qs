@@ -14,7 +14,9 @@ const (
 )
 
 var (
-	timeType = reflect.TypeOf(time.Time{})
+	timeType    = reflect.TypeOf(time.Time{})
+	encoderType = reflect.TypeOf(new(QueryParamEncoder)).Elem()
+	zeroerType  = reflect.TypeOf(new(Zeroer)).Elem()
 )
 
 // EncoderOption provides option for Encoder
@@ -23,10 +25,9 @@ type EncoderOption func(encoder *Encoder)
 // Encoder is the main instance
 // Apply options by using WithTagAlias, WithCustomType
 type Encoder struct {
-	tagAlias   string
-	cache      *cacheStore
-	dataPool   *sync.Pool
-	formatters map[reflect.Type]func(val interface{}, opts []string, result func(v string))
+	tagAlias string
+	cache    *cacheStore
+	dataPool *sync.Pool
 }
 
 type encoder struct {
@@ -43,24 +44,11 @@ func WithTagAlias(tagAlias string) EncoderOption {
 	}
 }
 
-// WithCustomType create a option to set custom data type
-func WithCustomType(i interface{}, formatter func(val interface{}, opts []string, result func(v string))) EncoderOption {
-	return func(encoder *Encoder) {
-		switch typ := i.(type) {
-		case reflect.Type:
-			encoder.formatters[typ] = formatter
-		default:
-			encoder.formatters[reflect.TypeOf(i)] = formatter
-		}
-	}
-}
-
 // NewEncoder init new *Encoder instance
 // Use EncoderOption to apply options
 func NewEncoder(options ...EncoderOption) *Encoder {
 	e := &Encoder{
-		tagAlias:   "qs",
-		formatters: make(map[reflect.Type]func(val interface{}, opts []string, result func(v string))),
+		tagAlias: "qs",
 	}
 
 	// Apply options
@@ -103,7 +91,10 @@ func (e *Encoder) Values(v interface{}) (url.Values, error) {
 	case reflect.Struct:
 		enc := e.dataPool.Get().(*encoder)
 		enc.values = make(url.Values)
-		enc.encodeStruct(val, enc.values, nil)
+		err := enc.encodeStruct(val, enc.values, nil)
+		if err != nil {
+			return nil, err
+		}
 		values := enc.values
 		e.dataPool.Put(enc)
 		return values, nil
@@ -128,14 +119,17 @@ func (e *Encoder) Encode(v interface{}, values url.Values) error {
 		return errors.Errorf("expects struct input, got %v", val.Kind())
 	case reflect.Struct:
 		enc := e.dataPool.Get().(*encoder)
-		enc.encodeStruct(val, values, nil)
+		err := enc.encodeStruct(val, values, nil)
+		if err != nil {
+			return err
+		}
 		return nil
 	default:
 		return errors.Errorf("expects struct input, got %v", val.Kind())
 	}
 }
 
-func (e *encoder) encodeStruct(stVal reflect.Value, values url.Values, scope []byte) {
+func (e *encoder) encodeStruct(stVal reflect.Value, values url.Values, scope []byte) error {
 	stTyp := stVal.Type()
 
 	cachedFlds := e.e.cache.Retrieve(stTyp)
@@ -183,16 +177,24 @@ func (e *encoder) encodeStruct(stVal reflect.Value, values url.Values, scope []b
 				if stFldVal.Len() == 0 {
 					continue
 				}
-				// preallocate slice
-				values[cachedFld.name] = make([]string, 0, stFldVal.Len())
+				if count := countElem(stFldVal); count > 0 {
+					// preallocate slice
+					values[cachedFld.name] = make([]string, 0, countElem(stFldVal))
+				} else {
+					continue
+				}
 			}
 		}
 
 		// format value
-		cachedFld.formatFnc(stFldVal, func(name string, val string) {
+		err := cachedFld.formatFnc(stFldVal, func(name string, val string) {
 			values[name] = append(values[name], val)
 		})
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func (e *encoder) structCaching(fields *cachedFields, stVal reflect.Value, scope []byte) {
@@ -225,12 +227,18 @@ func (e *encoder) structCaching(fields *cachedFields, stVal reflect.Value, scope
 		}
 
 		fieldVal := stVal.Field(i)
-		fieldTyp := getType(fieldVal)
 
-		if formatter := e.e.formatters[fieldTyp]; formatter != nil {
-			*fields = append(*fields, newCustomField(e.tags[0], e.tags[1:], formatter))
+		if fieldVal.Type().Implements(encoderType) {
+			*fields = append(*fields, newCustomField(fieldVal.Type(), e.tags[0], e.tags[1:]))
 			continue
 		}
+
+		fieldTyp := getType(fieldVal)
+
+		/*if formatter := e.e.formatters[fieldTyp]; formatter != nil {
+			*fields = append(*fields, newCustomField(fieldTyp, e.tags[0], e.tags[1:], formatter))
+			continue
+		}*/
 
 		if fieldTyp == timeType {
 			*fields = append(*fields, newTimeField(e.tags[0], e.tags[1:]))
@@ -251,19 +259,23 @@ func (e *encoder) structCaching(fields *cachedFields, stVal reflect.Value, scope
 		case reflect.Slice, reflect.Array:
 			//Slice element type
 			elemType := fieldTyp.Elem()
+			if elemType.Implements(encoderType) {
+				*fields = append(*fields, e.newListField(elemType, e.tags[0], e.tags[1:]))
+				continue
+			}
 			for elemType.Kind() == reflect.Ptr {
 				elemType = elemType.Elem()
 			}
 			*fields = append(*fields, e.newListField(elemType, e.tags[0], e.tags[1:]))
 		case reflect.Map:
 			keyType := fieldTyp.Key()
-			for keyType.Kind() == reflect.Ptr {
+			/*for keyType.Kind() == reflect.Ptr {
 				keyType = keyType.Elem()
-			}
+			}*/
 			valueType := fieldTyp.Elem()
-			for valueType.Kind() == reflect.Ptr {
+			/*for valueType.Kind() == reflect.Ptr {
 				valueType = valueType.Elem()
-			}
+			}*/
 			*fields = append(*fields, newMapField(keyType, valueType, e.tags[0], e.tags[1:]))
 		default:
 			*fields = append(*fields, newCachedFieldByKind(fieldTyp.Kind(), e.tags[0], e.tags[1:]))

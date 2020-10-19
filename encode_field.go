@@ -51,13 +51,13 @@ func newEmbedField(preAlloc int, tagName []byte, tagOptions [][]byte) *embedFiel
 	return embedField
 }
 
-func (embedField *embedField) formatFnc(v reflect.Value, result resultFunc) {
+func (embedField *embedField) formatFnc(v reflect.Value, result resultFunc) error {
 	for v.Kind() == reflect.Ptr {
 		if v.IsNil() {
 			if !embedField.omitEmpty {
 				result(embedField.name, "")
 			}
-			return
+			return nil
 		}
 		v = v.Elem()
 	}
@@ -65,8 +65,12 @@ func (embedField *embedField) formatFnc(v reflect.Value, result resultFunc) {
 		if cachedField == nil {
 			continue
 		}
-		cachedField.formatFnc(v.Field(i), result)
+		err := cachedField.formatFnc(v.Field(i), result)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 // Present for field with slice/array data type
@@ -76,52 +80,91 @@ type listField struct {
 	arrayFormat listFormat
 }
 
-func (listField *listField) formatFnc(field reflect.Value, result resultFunc) {
-
+func (listField *listField) formatFnc(field reflect.Value, result resultFunc) error {
 	switch listField.arrayFormat {
 	case arrayFormatComma:
 		var str strings.Builder
 		for i := 0; i < field.Len(); i++ {
 			elemVal := field.Index(i)
-			for elemVal.Kind() == reflect.Ptr {
-				elemVal = elemVal.Elem()
+			if _, ok := listField.cachedField.(*customField); ok {
+				elem := elemVal
+				for elem.Kind() == reflect.Ptr {
+					elem = elem.Elem()
+				}
+				if !elem.IsValid() {
+					continue
+				}
+			} else {
+				for elemVal.Kind() == reflect.Ptr {
+					elemVal = elemVal.Elem()
+				}
+				if !elemVal.IsValid() {
+					continue
+				}
 			}
-			if !elemVal.IsValid() {
-				continue
-			}
-			if i != 0 {
-				str.WriteByte(',')
-			}
-			listField.cachedField.formatFnc(elemVal, func(name string, val string) {
+			err := listField.cachedField.formatFnc(elemVal, func(name string, val string) {
+				if i > 0 {
+					str.WriteByte(',')
+				}
 				str.WriteString(val)
 			})
+			if err != nil {
+				return err
+			}
 		}
-		result(listField.name, str.String())
+		returnStr := str.String()
+		if returnStr[0] == ',' {
+			returnStr = returnStr[1:]
+		}
+		result(listField.name, returnStr)
 	case arrayFormatRepeat, arrayFormatBracket:
 		for i := 0; i < field.Len(); i++ {
 			elemVal := field.Index(i)
-			for elemVal.Kind() == reflect.Ptr {
-				elemVal = elemVal.Elem()
+			if _, ok := listField.cachedField.(*customField); ok {
+				elem := elemVal
+				for elem.Kind() == reflect.Ptr {
+					elem = elem.Elem()
+				}
+				if !elem.IsValid() {
+					continue
+				}
+			} else {
+				for elemVal.Kind() == reflect.Ptr {
+					elemVal = elemVal.Elem()
+				}
+				if !elemVal.IsValid() {
+					continue
+				}
 			}
-			if !elemVal.IsValid() {
-				continue
-			}
-			listField.cachedField.formatFnc(elemVal, func(name string, val string) {
+			err := listField.cachedField.formatFnc(elemVal, func(name string, val string) {
 				result(listField.name, val)
 			})
+			if err != nil {
+				return err
+			}
 		}
 	case arrayFormatIndex:
 		count := 0
 		for i := 0; i < field.Len(); i++ {
 			elemVal := field.Index(i)
-			for elemVal.Kind() == reflect.Ptr {
-				elemVal = elemVal.Elem()
-			}
-			if !elemVal.IsValid() {
-				continue
+			if _, ok := listField.cachedField.(*customField); ok {
+				elem := elemVal
+				for elem.Kind() == reflect.Ptr {
+					elem = elem.Elem()
+				}
+				if !elem.IsValid() {
+					continue
+				}
+			} else {
+				for elemVal.Kind() == reflect.Ptr {
+					elemVal = elemVal.Elem()
+				}
+				if !elemVal.IsValid() {
+					continue
+				}
 			}
 			if v, ok := listField.cachedField.(*embedField); ok {
-				v.formatFnc(elemVal, func(name string, val string) {
+				err := v.formatFnc(elemVal, func(name string, val string) {
 					var str strings.Builder
 					str.WriteString(listField.name)
 					str.WriteString(strconv.FormatInt(int64(count), 10))
@@ -132,9 +175,12 @@ func (listField *listField) formatFnc(field reflect.Value, result resultFunc) {
 					result(str.String(), val)
 					count++
 				})
+				if err != nil {
+					return err
+				}
 				continue
 			}
-			listField.cachedField.formatFnc(elemVal, func(name string, val string) {
+			err := listField.cachedField.formatFnc(elemVal, func(name string, val string) {
 				var key strings.Builder
 				key.WriteString(listField.name)
 				key.WriteString(strconv.FormatInt(int64(count), 10))
@@ -142,8 +188,12 @@ func (listField *listField) formatFnc(field reflect.Value, result resultFunc) {
 				result(key.String(), val)
 				count++
 			})
+			if err != nil {
+				return err
+			}
 		}
 	}
+	return nil
 }
 
 func (e *encoder) newListField(elemTyp reflect.Type, tagName []byte, tagOptions [][]byte) *listField {
@@ -199,22 +249,29 @@ type mapField struct {
 	cachedValueField cachedField
 }
 
-func (mapField *mapField) formatFnc(field reflect.Value, result resultFunc) {
+func (mapField *mapField) formatFnc(field reflect.Value, result resultFunc) error {
 	mapRange := field.MapRange()
 	fieldName := make([]byte, 0, 36)
 	fieldName = append(fieldName, mapField.name...)
 
 	for mapRange.Next() {
 		fieldName = fieldName[:len(mapField.name)]
-		mapField.cachedKeyField.formatFnc(mapRange.Key(), func(_ string, val string) {
+		err := mapField.cachedKeyField.formatFnc(mapRange.Key(), func(_ string, val string) {
 			fieldName = append(fieldName, '[')
 			fieldName = append(fieldName, val...)
 			fieldName = append(fieldName, ']')
 		})
-		mapField.cachedValueField.formatFnc(mapRange.Value(), func(_ string, val string) {
+		if err != nil {
+			return err
+		}
+		err = mapField.cachedValueField.formatFnc(mapRange.Value(), func(_ string, val string) {
 			result(string(fieldName), val)
 		})
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func newMapField(keyType reflect.Type, valueType reflect.Type, tagName []byte, tagOptions [][]byte) *mapField {
@@ -226,6 +283,18 @@ func newMapField(keyType reflect.Type, valueType reflect.Type, tagName []byte, t
 	}
 	if removeIdx > -1 {
 		tagOptions = append(tagOptions[:removeIdx], tagOptions[removeIdx+1:]...)
+	}
+
+	if !keyType.Implements(encoderType) {
+		for keyType.Kind() == reflect.Ptr {
+			keyType = keyType.Elem()
+		}
+	}
+
+	if !valueType.Implements(encoderType) {
+		for valueType.Kind() == reflect.Ptr {
+			valueType = valueType.Elem()
+		}
 	}
 
 	field := &mapField{
@@ -244,19 +313,19 @@ type boolField struct {
 	useInt bool
 }
 
-func (boolField *boolField) formatFnc(v reflect.Value, result resultFunc) {
+func (boolField *boolField) formatFnc(v reflect.Value, result resultFunc) error {
 	for v.Kind() == reflect.Ptr {
 		if v.IsNil() {
 			if !boolField.omitEmpty {
 				result(boolField.name, "")
 			}
-			return
+			return nil
 		}
 		v = v.Elem()
 	}
 	b := v.Bool()
 	if !b && boolField.omitEmpty {
-		return
+		return nil
 	}
 	if boolField.useInt {
 		if v.Bool() {
@@ -267,6 +336,7 @@ func (boolField *boolField) formatFnc(v reflect.Value, result resultFunc) {
 	} else {
 		result(boolField.name, strconv.FormatBool(b))
 	}
+	return nil
 }
 
 func newBoolField(tagName []byte, tagOptions [][]byte) *boolField {
@@ -291,21 +361,22 @@ type intField struct {
 	*baseField
 }
 
-func (intField *intField) formatFnc(value reflect.Value, result resultFunc) {
+func (intField *intField) formatFnc(value reflect.Value, result resultFunc) error {
 	for value.Kind() == reflect.Ptr {
 		if value.IsNil() {
 			if !intField.omitEmpty {
 				result(intField.name, "")
 			}
-			return
+			return nil
 		}
 		value = value.Elem()
 	}
 	i := value.Int()
 	if i == 0 && intField.omitEmpty {
-		return
+		return nil
 	}
 	result(intField.name, strconv.FormatInt(i, 10))
+	return nil
 }
 
 func newIntField(tagName []byte, tagOptions [][]byte) *intField {
@@ -327,21 +398,22 @@ type uintField struct {
 	*baseField
 }
 
-func (uintField *uintField) formatFnc(value reflect.Value, result resultFunc) {
+func (uintField *uintField) formatFnc(value reflect.Value, result resultFunc) error {
 	for value.Kind() == reflect.Ptr {
 		if value.IsNil() {
 			if !uintField.omitEmpty {
 				result(uintField.name, "")
 			}
-			return
+			return nil
 		}
 		value = value.Elem()
 	}
 	i := value.Uint()
 	if i == 0 && uintField.omitEmpty {
-		return
+		return nil
 	}
 	result(uintField.name, strconv.FormatUint(i, 10))
+	return nil
 }
 
 func newUintField(tagName []byte, tagOptions [][]byte) *uintField {
@@ -363,21 +435,22 @@ type stringField struct {
 	*baseField
 }
 
-func (stringField *stringField) formatFnc(value reflect.Value, result resultFunc) {
+func (stringField *stringField) formatFnc(value reflect.Value, result resultFunc) error {
 	for value.Kind() == reflect.Ptr {
 		if value.IsNil() {
 			if !stringField.omitEmpty {
 				result(stringField.name, "")
 			}
-			return
+			return nil
 		}
 		value = value.Elem()
 	}
 	str := value.String()
 	if str == "" && stringField.omitEmpty {
-		return
+		return nil
 	}
 	result(stringField.name, str)
+	return nil
 }
 
 func newStringField(tagName []byte, tagOptions [][]byte) *stringField {
@@ -399,21 +472,22 @@ type float32Field struct {
 	*baseField
 }
 
-func (float32Field *float32Field) formatFnc(value reflect.Value, result resultFunc) {
+func (float32Field *float32Field) formatFnc(value reflect.Value, result resultFunc) error {
 	for value.Kind() == reflect.Ptr {
 		if value.IsNil() {
 			if !float32Field.omitEmpty {
 				result(float32Field.name, "")
 			}
-			return
+			return nil
 		}
 		value = value.Elem()
 	}
 	f := value.Float()
 	if f == 0 && float32Field.omitEmpty {
-		return
+		return nil
 	}
 	result(float32Field.name, strconv.FormatFloat(f, 'f', -1, 32))
+	return nil
 }
 
 func newFloat32Field(tagName []byte, tagOptions [][]byte) *float32Field {
@@ -435,21 +509,22 @@ type float64Field struct {
 	*baseField
 }
 
-func (float64Field *float64Field) formatFnc(v reflect.Value, result resultFunc) {
+func (float64Field *float64Field) formatFnc(v reflect.Value, result resultFunc) error {
 	for v.Kind() == reflect.Ptr {
 		if v.IsNil() {
 			if !float64Field.omitEmpty {
 				result(float64Field.name, "")
 			}
-			return
+			return nil
 		}
 		v = v.Elem()
 	}
 	f := v.Float()
 	if f == 0 && float64Field.omitEmpty {
-		return
+		return nil
 	}
 	result(float64Field.name, strconv.FormatFloat(f, 'f', -1, 64))
+	return nil
 }
 
 func newFloat64Field(tagName []byte, tagOptions [][]byte) *float64Field {
@@ -471,21 +546,22 @@ type complex64Field struct {
 	*baseField
 }
 
-func (complex64Field *complex64Field) formatFnc(v reflect.Value, result resultFunc) {
+func (complex64Field *complex64Field) formatFnc(v reflect.Value, result resultFunc) error {
 	for v.Kind() == reflect.Ptr {
 		if v.IsNil() {
 			if !complex64Field.omitEmpty {
 				result(complex64Field.name, "")
 			}
-			return
+			return nil
 		}
 		v = v.Elem()
 	}
 	c := v.Complex()
 	if c == 0 && complex64Field.omitEmpty {
-		return
+		return nil
 	}
 	result(complex64Field.name, strconv.FormatComplex(c, 'f', -1, 64))
+	return nil
 }
 
 func newComplex64Field(tagName []byte, tagOptions [][]byte) *complex64Field {
@@ -507,21 +583,22 @@ type complex128Field struct {
 	*baseField
 }
 
-func (complex128Field *complex128Field) formatFnc(v reflect.Value, result resultFunc) {
+func (complex128Field *complex128Field) formatFnc(v reflect.Value, result resultFunc) error {
 	for v.Kind() == reflect.Ptr {
 		if v.IsNil() {
 			if !complex128Field.omitEmpty {
 				result(complex128Field.name, "")
 			}
-			return
+			return nil
 		}
 		v = v.Elem()
 	}
 	c := v.Complex()
 	if c == 0 && complex128Field.omitEmpty {
-		return
+		return nil
 	}
 	result(complex128Field.name, strconv.FormatComplex(c, 'f', -1, 128))
+	return nil
 }
 
 func newComplex128Field(tagName []byte, tagOptions [][]byte) *complex128Field {
@@ -544,19 +621,19 @@ type timeField struct {
 	timeFormat timeFormat
 }
 
-func (timeField *timeField) formatFnc(v reflect.Value, result resultFunc) {
+func (timeField *timeField) formatFnc(v reflect.Value, result resultFunc) error {
 	for v.Kind() == reflect.Ptr {
 		if v.IsNil() {
 			if !timeField.omitEmpty {
 				result(timeField.name, "")
 			}
-			return
+			return nil
 		}
 		v = v.Elem()
 	}
 	t := v.Interface().(time.Time)
 	if t.IsZero() && timeField.omitEmpty {
-		return
+		return nil
 	}
 	switch timeField.timeFormat {
 	case timeFormatSecond:
@@ -566,6 +643,7 @@ func (timeField *timeField) formatFnc(v reflect.Value, result resultFunc) {
 	default:
 		result(timeField.name, t.Format(time.RFC3339))
 	}
+	return nil
 }
 
 func newTimeField(tagName []byte, tagOptions [][]byte) *timeField {
@@ -587,31 +665,66 @@ func newTimeField(tagName []byte, tagOptions [][]byte) *timeField {
 	return field
 }
 
+// IsZeroer is used to check whether an object is zero to
+// determine whether it should be omitted when encoding
+type Zeroer interface {
+	IsZero() bool
+}
+
+// QueryParamEncoder is an interface implemented by any type to encode itself into query param
+type QueryParamEncoder interface {
+	EncodeParam() (string, error)
+}
+
 type customField struct {
 	*baseField
-	tagOptions []string
-	formatter  func(val interface{}, opts []string, result func(v string))
+	isZeroer bool
 }
 
-func (customField *customField) formatFnc(v reflect.Value, result resultFunc) {
-	customField.formatter(v.Interface(), customField.tagOptions, func(v string) {
-		result(customField.name, v)
-	})
-}
-
-func newCustomField(tagName []byte, tagOptions [][]byte, formatter func(val interface{}, opts []string, result func(v string))) *customField {
-	opts := make([]string, 0, len(tagOptions))
-	for _, tagOption := range tagOptions {
-		opts = append(opts, string(tagOption))
+func (customField *customField) formatFnc(v reflect.Value, result resultFunc) error {
+	elem := v
+	for elem.Kind() == reflect.Ptr {
+		elem = v.Elem()
 	}
-	return &customField{
+	if !elem.IsValid() {
+		if !customField.omitEmpty {
+			result(customField.name, "")
+		}
+		return nil
+	}
+	valueInterface := v.Interface()
+	if customField.isZeroer && valueInterface.(Zeroer).IsZero() {
+		if !customField.omitEmpty {
+			result(customField.name, "")
+		}
+		return nil
+	}
+	str, err := valueInterface.(QueryParamEncoder).EncodeParam()
+	if err != nil {
+		return err
+	}
+	result(customField.name, str)
+	return nil
+}
+
+func newCustomField(typ reflect.Type, tagName []byte, tagOptions [][]byte) *customField {
+	field := &customField{
 		baseField: &baseField{
 			name:      string(tagName),
 			omitEmpty: false,
 		},
-		tagOptions: opts,
-		formatter:  formatter,
 	}
+
+	if typ.Implements(zeroerType) {
+		field.isZeroer = true
+	}
+
+	for _, tagOption := range tagOptions {
+		if string(tagOption) == tagOmitEmpty {
+			field.omitEmpty = true
+		}
+	}
+	return field
 }
 
 type interfaceField struct {
@@ -621,27 +734,41 @@ type interfaceField struct {
 	fieldMap   map[reflect.Type]cachedField
 }
 
-func (interfaceField *interfaceField) formatFnc(v reflect.Value, result resultFunc) {
+func (interfaceField *interfaceField) formatFnc(v reflect.Value, result resultFunc) error {
 
 	v = v.Elem()
 
-	for v.Kind() == reflect.Ptr {
-		v = v.Elem()
-	}
-
-	if !v.IsValid() {
-		if !interfaceField.omitEmpty {
-			result(interfaceField.name, "")
+	if v.IsValid() && v.Type().Implements(encoderType) {
+		elem := v
+		for elem.Kind() == reflect.Ptr {
+			elem = elem.Elem()
 		}
-		return
+		if !elem.IsValid() {
+			return nil
+		}
+	} else {
+		for v.Kind() == reflect.Ptr {
+			v = v.Elem()
+		}
+
+		if !v.IsValid() {
+			if !interfaceField.omitEmpty {
+				result(interfaceField.name, "")
+			}
+			return nil
+		}
 	}
 
 	if field := interfaceField.fieldMap[v.Type()]; field == nil {
 		interfaceField.fieldMap[v.Type()] = newCacheFieldByType(v.Type(), interfaceField.tagName, interfaceField.tagOptions)
 	}
 	if field := interfaceField.fieldMap[v.Type()]; field != nil {
-		field.formatFnc(v, result)
+		err := field.formatFnc(v, result)
+		if err != nil {
+			return err
+		}
 	}
+	return nil
 }
 
 func newInterfaceField(tagName []byte, tagOptions [][]byte) *interfaceField {

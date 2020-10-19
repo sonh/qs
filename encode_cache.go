@@ -35,13 +35,16 @@ type (
 
 	// cachedField
 	cachedField interface {
-		formatFnc(value reflect.Value, result resultFunc)
+		formatFnc(value reflect.Value, result resultFunc) error
 	}
 
 	cachedFields []cachedField
 )
 
 func newCacheFieldByType(typ reflect.Type, tagName []byte, tagOptions [][]byte) cachedField {
+	if typ.Implements(encoderType) {
+		return newCustomField(typ, tagName, tagOptions)
+	}
 	switch typ {
 	case timeType:
 		return newTimeField(tagName, tagOptions)
@@ -84,4 +87,18 @@ func getType(fieldVal reflect.Value) reflect.Type {
 		stFieldTyp = stFieldTyp.Elem()
 	}
 	return stFieldTyp
+}
+
+func countElem(value reflect.Value) int {
+	count := 0
+	for i := 0; i < value.Len(); i++ {
+		elem := value.Index(i)
+		for elem.Kind() == reflect.Ptr {
+			elem = elem.Elem()
+		}
+		if elem.IsValid() {
+			count++
+		}
+	}
+	return count
 }

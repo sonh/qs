@@ -165,6 +165,46 @@ values, _ := encoder.Values(query)
 fmt.Println(values.Encode()) //(unescaped) output: "user[from]=1601623397728&user[verified]=true"
 ```
 
+### Custom Type
+Implement `EncodeParam` to encode itself into query param.
+
+Implement `IsZero` to check whether an object is zero to determine whether it should be omitted when encoding.
+```go
+type NullableName struct {
+	First string
+	Last  string
+}
+
+func (n NullableName) EncodeParam() (string, error) {
+	return n.First + n.Last, nil
+}
+
+func (n NullableName) IsZero() bool {
+	return n.First == "" && n.Last == ""
+}
+
+type Struct struct {
+    User  NullableName `qs:"user"`
+    Admin NullableName `qs:"admin,omitempty"`
+}
+
+s := Struct{
+    User: NullableName{
+        First: "son",
+        Last:  "huynh",
+    },
+}
+encoder := qs.NewEncoder()
+
+values, err := encoder.Values(&s)
+if err != nil {
+    // Handle error
+    fmt.Println("failed")
+    return
+}
+fmt.Println(values.Encode()) //(unescaped) output: "user=sonhuynh"
+```
+
 ### Limitation
 - if elements in `slice/array` are `struct` data type, multi-level nesting are limited
 - no decoder yet

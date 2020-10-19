@@ -1,6 +1,7 @@
 package qs
 
 import (
+	"fmt"
 	"github.com/stretchr/testify/assert"
 	"net/url"
 	"reflect"
@@ -117,46 +118,6 @@ func TestWithTagAlias(t *testing.T) {
 
 	encoder := NewEncoder(opt)
 	test.Equal(alias, encoder.tagAlias)
-}
-
-func TestWithCustomType(t *testing.T) {
-	test := assert.New(t)
-
-	type newStrTyp string
-	newStrVal := newStrTyp("abc")
-	opt := WithCustomType(newStrVal, func(val interface{}, opts []string, result func(v string)) {
-		if str, ok := val.(newStrTyp); ok {
-			result(string(str))
-		}
-	})
-
-	encoder := NewEncoder(opt)
-	formatter := encoder.formatters[reflect.TypeOf(newStrVal)]
-	test.NotNil(formatter)
-
-	formatter(newStrVal, nil, func(v string) {
-		test.Equal("abc", v)
-	})
-}
-
-func TestWithCustomType2(t *testing.T) {
-	test := assert.New(t)
-
-	type newIntTyp int
-	newIntVal := newIntTyp(1)
-	opt := WithCustomType(reflect.TypeOf(newIntVal), func(val interface{}, opts []string, result func(v string)) {
-		if i, ok := val.(newIntTyp); ok {
-			result(strconv.FormatInt(int64(i), 10))
-		}
-	})
-
-	encoder := NewEncoder(opt)
-	formatter := encoder.formatters[reflect.TypeOf(newIntVal)]
-	test.NotNil(formatter)
-
-	formatter(newIntVal, nil, func(v string) {
-		test.Equal("1", v)
-	})
 }
 
 func TestGetTag(t *testing.T) {
@@ -771,60 +732,6 @@ func TestNestedStruct(t *testing.T) {
 	assert.Equal(t, expected, values)
 }
 
-func TestEncodeCustomType(t *testing.T) {
-	test := assert.New(t)
-
-	type newStr string
-
-	encoder := NewEncoder(
-		WithCustomType(newStr(""), func(val interface{}, opts []string, result func(v string)) {
-			switch v := val.(type) {
-			case newStr:
-				for _, opt := range opts {
-					if opt == "omitempty" && v == "" {
-						return
-					}
-				}
-				result(string(v))
-			case *newStr:
-				for _, opt := range opts {
-					if opt == "omitempty" && v == nil {
-						return
-					}
-				}
-				if v == nil {
-					result("")
-				} else {
-					result(string(*v))
-				}
-			}
-		}),
-	)
-
-	str := newStr("newStrPtr")
-
-	s := struct {
-		NewStr           newStr  `qs:"new_str"`
-		NewStrEmpty      newStr  `qs:"new_str_empty,omitempty"`
-		NewStrPtr        *newStr `qs:"new_str_ptr"`
-		NewStrNilPtr     *newStr `qs:"new_str_nil_ptr"`
-		NewStrOmitNilPtr *newStr `qs:"new_str_omit_nil_ptr,omitempty"`
-	}{
-		NewStr:    "newStr",
-		NewStrPtr: &str,
-	}
-
-	values, err := encoder.Values(&s)
-	test.NoError(err)
-
-	expected := url.Values{
-		"new_str":         []string{"newStr"},
-		"new_str_ptr":     []string{"newStrPtr"},
-		"new_str_nil_ptr": []string{""},
-	}
-	test.Equal(expected, values)
-}
-
 func TestEncodeInterface(t *testing.T) {
 	test := assert.New(t)
 	encoder := NewEncoder()
@@ -882,6 +789,252 @@ func TestEncodeMap(t *testing.T) {
 		"ptr_map[xyz]": []string{"false"},
 	}
 	test.Equal(expected, values)
+}
+
+type Timestamp struct {
+	time.Time
+}
+
+func (t Timestamp) EncodeParam() (string, error) {
+	return t.Format(time.RFC3339), nil
+}
+
+func (t Timestamp) IsZero() bool {
+	return t.Time.IsZero()
+}
+
+type TimestampPtr struct {
+	time.Time
+}
+
+func (t *TimestampPtr) EncodeParam() (string, error) {
+	return t.Format(time.RFC3339), nil
+}
+
+func (t *TimestampPtr) IsZero() bool {
+	return t.Time.IsZero()
+}
+
+func TestEncodeCustomType(t *testing.T) {
+	test := assert.New(t)
+	encoder := NewEncoder()
+
+	tm := time.Unix(0, 0).UTC()
+
+	var zeroPtrTs *TimestampPtr
+	s := struct {
+		OmitTimestamp    Timestamp     `qs:"zero_ts,omitempty"`
+		ZeroTimestamp    Timestamp     `qs:"zero_ts"`
+		Timestamp        Timestamp     `qs:"ts"`
+		InterfaceTs      interface{}   `qs:"interface_ts"`
+		ZeroInterfaceTs  interface{}   `qs:"zero_interface_ts,omitempty"`
+		OmitPtrTimestamp *TimestampPtr `qs:"omit_ptr_ts,omitempty"`
+		NilPtrTimestamp  *TimestampPtr `qs:"zero_ptr_ts"`
+		TimestampPtr     *TimestampPtr `qs:"timestamp_ptr"`
+		TsList           []Timestamp   `qs:"ts_list"`
+		TsCommaList      []Timestamp   `qs:"ts_comma_list,comma"`
+		TsBracketList    []Timestamp   `qs:"ts_bracket_list,bracket"`
+		TsIndexList      []Timestamp   `qs:"ts_index_list,index"`
+		OmitTsList       []*Timestamp  `qs:"omit_ts_list"`
+		NilTsList        []*Timestamp  `qs:"nil_ts_list"`
+		TsPtrList        []*Timestamp  `qs:"ts_ptr_list"`
+		TsPtrCommaList   []*Timestamp  `qs:"ts_ptr_comma_list,comma"`
+		TsPtrBracketList []*Timestamp  `qs:"ts_ptr_bracket_list,bracket"`
+		TsPtrIndexList   []*Timestamp  `qs:"ts_ptr_index_list,index"`
+	}{
+		OmitTimestamp:   Timestamp{time.Time{}.UTC()},
+		ZeroTimestamp:   Timestamp{time.Time{}.UTC()},
+		Timestamp:       Timestamp{tm},
+		ZeroInterfaceTs: zeroPtrTs,
+		InterfaceTs:     Timestamp{tm},
+		TimestampPtr:    &TimestampPtr{tm},
+		TsList: []Timestamp{
+			{tm}, {tm},
+		},
+		TsCommaList: []Timestamp{
+			{tm}, {tm},
+		},
+		TsBracketList: []Timestamp{
+			{tm}, {tm},
+		},
+		TsIndexList: []Timestamp{
+			{tm}, {tm},
+		},
+		NilTsList: []*Timestamp{
+			nil,
+		},
+		TsPtrList: []*Timestamp{
+			nil, {tm}, {tm},
+		},
+		TsPtrCommaList: []*Timestamp{
+			nil, {tm}, {tm},
+		},
+		TsPtrBracketList: []*Timestamp{
+			nil, {tm}, {tm},
+		},
+		TsPtrIndexList: []*Timestamp{
+			nil, {tm}, {tm},
+		},
+	}
+
+	values, err := encoder.Values(&s)
+	test.NoError(err)
+
+	expected := url.Values{
+		"zero_ts":               []string{""},
+		"ts":                    []string{"1970-01-01T00:00:00Z"},
+		"zero_ptr_ts":           []string{""},
+		"timestamp_ptr":         []string{"1970-01-01T00:00:00Z"},
+		"interface_ts":          []string{"1970-01-01T00:00:00Z"},
+		"ts_list":               []string{"1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"},
+		"ts_comma_list":         []string{"1970-01-01T00:00:00Z,1970-01-01T00:00:00Z"},
+		"ts_bracket_list[]":     []string{"1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"},
+		"ts_index_list[0]":      []string{"1970-01-01T00:00:00Z"},
+		"ts_index_list[1]":      []string{"1970-01-01T00:00:00Z"},
+		"ts_ptr_list":           []string{"1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"},
+		"ts_ptr_comma_list":     []string{"1970-01-01T00:00:00Z,1970-01-01T00:00:00Z"},
+		"ts_ptr_bracket_list[]": []string{"1970-01-01T00:00:00Z", "1970-01-01T00:00:00Z"},
+		"ts_ptr_index_list[0]":  []string{"1970-01-01T00:00:00Z"},
+		"ts_ptr_index_list[1]":  []string{"1970-01-01T00:00:00Z"},
+	}
+	test.Equal(expected, values)
+}
+
+type ErrTimestamp struct {
+	time.Time
+}
+
+func (t *ErrTimestamp) EncodeParam() (string, error) {
+	return "", fmt.Errorf("failed to encode param")
+}
+
+func (t *ErrTimestamp) IsZero() bool {
+	return t.Time.IsZero()
+}
+
+func TestEncodeErrCustomType(t *testing.T) {
+	test := assert.New(t)
+	encoder := NewEncoder()
+
+	tm := time.Unix(0, 0).UTC()
+
+	s1 := struct {
+		ErrTimestamp *ErrTimestamp
+	}{
+		ErrTimestamp: &ErrTimestamp{tm},
+	}
+	s2 := struct {
+		ErrTimestamps []*ErrTimestamp
+	}{
+		ErrTimestamps: []*ErrTimestamp{
+			{tm},
+		},
+	}
+	s3 := struct {
+		ErrBracketList []*ErrTimestamp `qs:",bracket"`
+	}{
+		ErrBracketList: []*ErrTimestamp{
+			{tm},
+		},
+	}
+	s4 := struct {
+		ErrIndexList []*ErrTimestamp `qs:",index"`
+	}{
+		ErrIndexList: []*ErrTimestamp{
+			{tm},
+		},
+	}
+	s5 := struct {
+		ErrIndexList []*ErrTimestamp `qs:",comma"`
+	}{
+		ErrIndexList: []*ErrTimestamp{
+			{tm},
+		},
+	}
+	s6 := struct {
+		ErrTimestampMap map[string]*ErrTimestamp
+	}{
+		ErrTimestampMap: map[string]*ErrTimestamp{
+			"test": {tm},
+		},
+	}
+	s7 := struct {
+		ErrTimestampMap map[*ErrTimestamp]bool
+	}{
+		ErrTimestampMap: map[*ErrTimestamp]bool{
+			{tm}: true,
+		},
+	}
+	s8 := struct {
+		Embed struct {
+			ErrTimestampMap *ErrTimestamp
+		}
+	}{
+		Embed: struct {
+			ErrTimestampMap *ErrTimestamp
+		}{
+			ErrTimestampMap: &ErrTimestamp{tm},
+		},
+	}
+	s9 := struct {
+		ErrTimestamp interface{}
+	}{
+		ErrTimestamp: &ErrTimestamp{tm},
+	}
+
+	values, err := encoder.Values(&s1)
+	test.Error(err)
+	values = url.Values{}
+	err = encoder.Encode(&s1, values)
+	test.Error(err)
+
+	values, err = encoder.Values(&s2)
+	test.Error(err)
+	values = url.Values{}
+	err = encoder.Encode(&s2, values)
+	test.Error(err)
+
+	values, err = encoder.Values(&s3)
+	test.Error(err)
+	values = url.Values{}
+	err = encoder.Encode(&s3, values)
+	test.Error(err)
+
+	values, err = encoder.Values(&s4)
+	test.Error(err)
+	values = url.Values{}
+	err = encoder.Encode(&s4, values)
+	test.Error(err)
+
+	values, err = encoder.Values(&s5)
+	test.Error(err)
+	values = url.Values{}
+	err = encoder.Encode(&s5, values)
+	test.Error(err)
+
+	values, err = encoder.Values(&s6)
+	test.Error(err)
+	values = url.Values{}
+	err = encoder.Encode(&s6, values)
+	test.Error(err)
+
+	values, err = encoder.Values(&s7)
+	test.Error(err)
+	values = url.Values{}
+	err = encoder.Encode(&s7, values)
+	test.Error(err)
+
+	values, err = encoder.Values(&s8)
+	test.Error(err)
+	values = url.Values{}
+	err = encoder.Encode(&s8, values)
+	test.Error(err)
+
+	values, err = encoder.Values(&s9)
+	test.Error(err)
+	values = url.Values{}
+	err = encoder.Encode(&s9, values)
+	test.Error(err)
 }
 
 func TestEncoderIgnoreUnregisterType(t *testing.T) {
