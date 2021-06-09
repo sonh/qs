@@ -235,11 +235,6 @@ func (e *encoder) structCaching(fields *cachedFields, stVal reflect.Value, scope
 
 		fieldTyp := getType(fieldVal)
 
-		/*if formatter := e.e.formatters[fieldTyp]; formatter != nil {
-			*fields = append(*fields, newCustomField(fieldTyp, e.tags[0], e.tags[1:], formatter))
-			continue
-		}*/
-
 		if fieldTyp == timeType {
 			*fields = append(*fields, newTimeField(e.tags[0], e.tags[1:]))
 			continue

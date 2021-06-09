@@ -27,7 +27,7 @@ func main() {
 	values, err := encoder.Values(query)
 	if err != nil {
 		// Handle error
-		fmt.Println("failed")
+		fmt.Println(err)
 		return
 	}
 	fmt.Println(values.Encode())

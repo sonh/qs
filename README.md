@@ -9,7 +9,7 @@
 Package sonh/qs encodes structs into url.Values.
 
 ## Installation
-```shell
+```bash
 go get github.com/sonh/qs
 ```
 
@@ -166,9 +166,9 @@ fmt.Println(values.Encode()) //(unescaped) output: "user[from]=1601623397728&use
 ```
 
 ### Custom Type
-Implement `EncodeParam` to encode itself into query param.
-
-Implement `IsZero` to check whether an object is zero to determine whether it should be omitted when encoding.
+Implement funcs:
+* `EncodeParam` to encode itself into query param.
+* `IsZero` to check whether an object is zero to determine whether it should be omitted when encoding.
 ```go
 type NullableName struct {
 	First string
