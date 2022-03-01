@@ -2,12 +2,13 @@ package qs
 
 import (
 	"fmt"
-	"github.com/stretchr/testify/assert"
 	"net/url"
 	"reflect"
 	"strconv"
 	"testing"
 	"time"
+
+	"github.com/stretchr/testify/assert"
 )
 
 type basicVal struct {
@@ -170,25 +171,41 @@ func TestGetTag3(t *testing.T) {
 }
 
 func TestEncodeInvalidValue(t *testing.T) {
-	test := assert.New(t)
-	encoder := NewEncoder()
+	t.Parallel()
 
 	var ptr *string
 
-	_, err := encoder.Values("abc")
-	test.Error(err)
-	_, err = encoder.Values(ptr)
-	test.Error(err)
-	_, err = encoder.Values(nil)
-	test.Error(err)
+	testCases := []struct {
+		name  string
+		input interface{}
+	}{
+		{
+			name:  "string",
+			input: "abc",
+		},
+		{
+			name:  "nil pointer",
+			input: ptr,
+		},
+		{
+			name:  "nil",
+			input: nil,
+		},
+	}
 
-	values := make(url.Values)
-	err = encoder.Encode("abc", values)
-	test.Error(err)
-	err = encoder.Encode(ptr, values)
-	test.Error(err)
-	err = encoder.Encode(nil, values)
-	test.Error(err)
+	for _, testCase := range testCases {
+		t.Run(testCase.name, func(t *testing.T) {
+			test := assert.New(t)
+
+			encoder := NewEncoder()
+			_, err := encoder.Values(testCase.input)
+			test.Error(err)
+
+			values := make(url.Values)
+			err = encoder.Encode(testCase.input, values)
+		})
+	}
+
 }
 
 func TestEncodeBasicVal(t *testing.T) {
