@@ -21,7 +21,7 @@ func (cacheStore *cacheStore) Retrieve(typ reflect.Type) cachedFields {
 	return cacheStore.m[typ]
 }
 
-// cacheStore stores cachedFields that corresponds to reflect.Type
+// Store func stores cachedFields that corresponds to reflect.Type
 func (cacheStore *cacheStore) Store(typ reflect.Type, cachedFields cachedFields) {
 	cacheStore.mutex.Lock()
 	defer cacheStore.mutex.Unlock()

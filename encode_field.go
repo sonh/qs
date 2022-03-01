@@ -665,6 +665,7 @@ func newTimeField(tagName []byte, tagOptions [][]byte) *timeField {
 	return field
 }
 
+// Zeroer represents an object has zero value
 // IsZeroer is used to check whether an object is zero to
 // determine whether it should be omitted when encoding
 type Zeroer interface {
