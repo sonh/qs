@@ -167,7 +167,7 @@ func (listField *listField) formatFnc(field reflect.Value, result resultFunc) er
 				err := v.formatFnc(elemVal, func(name string, val string) {
 					var str strings.Builder
 					str.WriteString(listField.name)
-					str.WriteString(strconv.FormatInt(int64(count), 10))
+					str.WriteString(strconv.FormatInt(int64(i), 10))
 					str.WriteByte(']')
 					str.WriteByte('[')
 					str.WriteString(name)
