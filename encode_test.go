@@ -731,6 +731,10 @@ func TestNestedStruct(t *testing.T) {
 				Time: tm,
 				Name: withStr("abc"),
 			},
+			{
+				Time: tm,
+				Name: withStr("def"),
+			},
 		},
 	}
 
@@ -744,7 +748,9 @@ func TestNestedStruct(t *testing.T) {
 		"nested_ptr[time]":   []string{"600"},
 		"nested_ptr":         []string{""},
 		"nest_list[0][time]": []string{"600"},
-		"nest_list[1][name]": []string{"abc"},
+		"nest_list[0][name]": []string{"abc"},
+		"nest_list[1][time]": []string{"600"},
+		"nest_list[1][name]": []string{"def"},
 	}
 	assert.Equal(t, expected, values)
 }
