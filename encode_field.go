@@ -113,7 +113,7 @@ func (listField *listField) formatFnc(field reflect.Value, result resultFunc) er
 			}
 		}
 		returnStr := str.String()
-		if returnStr[0] == ',' {
+		if len(returnStr) > 0 && returnStr[0] == ',' {
 			returnStr = returnStr[1:]
 		}
 		result(listField.name, returnStr)

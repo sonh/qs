@@ -602,6 +602,7 @@ func TestArrayFormat_Comma(t *testing.T) {
 	tm := time.Unix(600, 0).UTC()
 
 	s := struct {
+		EmptyList  []string     `qs:"empty_list,comma"`
 		StringList []string     `qs:"str_list,comma"`
 		Times      []*time.Time `qs:"times,comma"`
 	}{
@@ -614,8 +615,9 @@ func TestArrayFormat_Comma(t *testing.T) {
 		return
 	}
 	expected := url.Values{
-		"str_list": []string{"a,b,c"},
-		"times":    []string{tm.Format(time.RFC3339)},
+		"empty_list": []string{""},
+		"str_list":   []string{"a,b,c"},
+		"times":      []string{tm.Format(time.RFC3339)},
 	}
 	assert.Equal(t, expected, values)
 }
