@@ -1,7 +1,6 @@
 package qs
 
 import (
-	"github.com/pkg/errors"
 	"net/url"
 	"reflect"
 	"strings"
@@ -80,14 +79,14 @@ func (e *Encoder) Values(v interface{}) (url.Values, error) {
 	val := reflect.ValueOf(v)
 	for val.Kind() == reflect.Ptr {
 		if val.IsNil() {
-			return nil, errors.Errorf("expects struct input, got %v", val.Kind())
+			return nil, ErrInvalidInput{inputType: val.Kind().String()}
 		}
 		val = val.Elem()
 	}
 
 	switch val.Kind() {
 	case reflect.Invalid:
-		return nil, errors.Errorf("expects struct input, got %v", val.Kind())
+		return nil, ErrInvalidInput{inputType: val.Kind().String()}
 	case reflect.Struct:
 		enc := e.dataPool.Get().(*encoder)
 		enc.values = make(url.Values)
@@ -99,7 +98,7 @@ func (e *Encoder) Values(v interface{}) (url.Values, error) {
 		e.dataPool.Put(enc)
 		return values, nil
 	default:
-		return nil, errors.Errorf("expects struct input, got %v", val.Kind())
+		return nil, ErrInvalidInput{inputType: val.Kind().String()}
 	}
 }
 
@@ -109,14 +108,14 @@ func (e *Encoder) Encode(v interface{}, values url.Values) error {
 	val := reflect.ValueOf(v)
 	for val.Kind() == reflect.Ptr {
 		if val.IsNil() {
-			return errors.Errorf("expects struct input, got %v", val.Kind())
+			return ErrInvalidInput{inputType: val.Kind().String()}
 		}
 		val = val.Elem()
 	}
 
 	switch val.Kind() {
 	case reflect.Invalid:
-		return errors.Errorf("expects struct input, got %v", val.Kind())
+		return ErrInvalidInput{inputType: val.Kind().String()}
 	case reflect.Struct:
 		enc := e.dataPool.Get().(*encoder)
 		err := enc.encodeStruct(val, values, nil)
@@ -125,7 +124,7 @@ func (e *Encoder) Encode(v interface{}, values url.Values) error {
 		}
 		return nil
 	default:
-		return errors.Errorf("expects struct input, got %v", val.Kind())
+		return ErrInvalidInput{inputType: val.Kind().String()}
 	}
 }
 
@@ -149,7 +148,7 @@ func (e *encoder) encodeStruct(stVal reflect.Value, values url.Values, scope []b
 			continue
 		case *mapField:
 			if cachedFld.cachedKeyField == nil || cachedFld.cachedValueField == nil {
-				//data type is not supported
+				// data type is not supported
 				continue
 			}
 			for stFldVal.Kind() == reflect.Ptr {
@@ -163,7 +162,7 @@ func (e *encoder) encodeStruct(stVal reflect.Value, values url.Values, scope []b
 			}
 		case *listField:
 			if cachedFld.cachedField == nil {
-				//data type is not supported
+				// data type is not supported
 				continue
 			}
 			if cachedFld.arrayFormat <= arrayFormatBracket {
@@ -252,7 +251,7 @@ func (e *encoder) structCaching(fields *cachedFields, stVal reflect.Value, scope
 			// Recursive
 			e.structCaching(&field.cachedFields, fieldVal, e.scope)
 		case reflect.Slice, reflect.Array:
-			//Slice element type
+			// Slice element type
 			elemType := fieldTyp.Elem()
 			if elemType.Implements(encoderType) {
 				*fields = append(*fields, e.newListField(elemType, e.tags[0], e.tags[1:]))
