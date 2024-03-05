@@ -1,5 +1,5 @@
 # qs #
-[![Build](https://github.com/sonh/qs/workflows/build/badge.svg?branch=main)](https://github.com/sonh/qs/actions)
+[![Build](https://github.com/sonh/qs/actions/workflows/go.yml/badge.svg?branch=main)](https://github.com/sonh/qs/actions)
 [![Codecov](https://codecov.io/gh/sonh/qs/branch/main/graph/badge.svg)](https://codecov.io/gh/sonh/qs)
 [![GoReportCard](https://goreportcard.com/badge/github.com/sonh/qs)](https://goreportcard.com/report/github.com/sonh/qs)
 [![Release](https://img.shields.io/github/release/sonh/qs.svg?color=brightgreen)](https://github.com/sonh/qs/releases/)
