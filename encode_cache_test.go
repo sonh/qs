@@ -7,32 +7,31 @@ import (
 
 func TestCacheStore(t *testing.T) {
 	t.Parallel()
-	//test := assert.New(t)
 
 	s := &basicVal{}
 
 	cacheStore := newCacheStore()
 	if cacheStore == nil {
+		t.Error("cache store should not be nil")
 		t.FailNow()
 	}
-	//test.NotNil(cacheStore)
 
 	fields := cachedFields{&float64Field{}}
 	cacheStore.Store(reflect.TypeOf(s), fields)
 	cachedFlds := cacheStore.Retrieve(reflect.TypeOf(s))
 
 	if cachedFlds == nil {
+		t.Error("cache store should not be nil")
 		t.FailNow()
 	}
 	if len(cachedFlds) != len(fields) {
+		t.Error("cache store should have the same number of fields")
 		t.FailNow()
 	}
 	if &fields[0] != &cachedFlds[0] {
+		t.Error("cache store should have the same fields")
 		t.FailNow()
 	}
-	//test.NotNil(cachedFlds)
-	//test.Len(cachedFlds, len(fields))
-	//test.True(&fields[0] == &cachedFlds[0])
 }
 
 func TestNewCacheField(t *testing.T) {
@@ -45,26 +44,30 @@ func TestNewCacheField(t *testing.T) {
 
 	strField, ok := cacheField.(*stringField)
 	if !ok {
+		t.Error("strField should be stringField")
 		t.FailNow()
 	}
 	if string(name) != strField.name {
+		t.Errorf("strField.name should be %s, but %s", string(name), strField.name)
 		t.FailNow()
 	}
 	if !strField.omitEmpty {
+		t.Error("omitEmpty should be true")
 		t.FailNow()
 	}
 	if !reflect.DeepEqual(reflect.TypeOf(new(stringField)), reflect.TypeOf(cacheField)) {
+		t.Error("cache field is not of type *stringField")
 		t.FailNow()
 	}
 }
 
 func TestNewCacheField2(t *testing.T) {
-	//test := assert.New(t)
+	t.Parallel()
 
 	var strPtr *string
 	cacheField := newCachedFieldByKind(reflect.ValueOf(strPtr).Kind(), nil, nil)
 	if cacheField != nil {
+		t.Error("expect cacheField to be nil")
 		t.FailNow()
 	}
-	//test.Nil(cacheField)
 }
