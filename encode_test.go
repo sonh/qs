@@ -94,7 +94,6 @@ type basicPtrWithOmit struct {
 func TestIgnore(t *testing.T) {
 	t.Parallel()
 
-	//test := assert.New(t)
 	encoder := NewEncoder()
 
 	v := struct {
@@ -104,42 +103,34 @@ func TestIgnore(t *testing.T) {
 
 	values, err := encoder.Values(v)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("expected no error, got %v", err)
 		t.FailNow()
 	}
 	if !reflect.DeepEqual(url.Values{}, values) {
+		t.Errorf("values should be empty, but got %v", values)
 		t.FailNow()
 	}
-	//if err != nil {
-	//	test.FailNow(err.Error())
-	//	return
-	//}
-	//assert.Equal(t, url.Values{}, values)
 }
 
 func TestWithTagAlias(t *testing.T) {
 	t.Parallel()
 
-	//test := assert.New(t)
-
 	alias := `go`
 	opt := WithTagAlias(alias)
 	if opt == nil {
+		t.Error("expected non-nil value")
 		t.FailNow()
 	}
-	//test.NotNil(opt)
 
 	encoder := NewEncoder(opt)
 	if alias != encoder.tagAlias {
+		t.Errorf("expected tag alias %q, but got %q", alias, encoder.tagAlias)
 		t.FailNow()
 	}
-	//test.Equal(alias, encoder.tagAlias)
 }
 
 func TestGetTag(t *testing.T) {
 	t.Parallel()
-
-	//test := assert.New(t)
 
 	e := NewEncoder().dataPool.Get().(*encoder)
 
@@ -151,18 +142,17 @@ func TestGetTag(t *testing.T) {
 	e.getTagNameAndOpts(field)
 
 	if len(e.tags) != 1 {
+		t.Errorf("expected 1 tag, got %d", len(e.tags))
 		t.FailNow()
 	}
 	if "abc" != string(e.tags[0]) {
+		t.Errorf(`expected tag name: "abc", got "%s"`, string(e.tags[0]))
 		t.FailNow()
 	}
-	//test.Len(e.tags, 1)
-	//test.Equal("abc", string(e.tags[0]))
 }
 
 func TestGetTag2(t *testing.T) {
 	t.Parallel()
-	//test := assert.New(t)
 
 	e := NewEncoder().dataPool.Get().(*encoder)
 
@@ -174,20 +164,17 @@ func TestGetTag2(t *testing.T) {
 	e.getTagNameAndOpts(field)
 
 	if len(e.tags) != 1 {
-		t.Error("expected 1 tag")
+		t.Errorf("expected 1 tag, got %d", len(e.tags))
 		t.FailNow()
 	}
 	if "ABC" != string(e.tags[0]) {
-		t.Error("expected tag name: ABC")
+		t.Error(`expected tag name: "ABC"`)
 		t.FailNow()
 	}
-	//test.Len(e.tags, 1)
-	//test.Equal("ABC", string(e.tags[0]))
 }
 
 func TestGetTag3(t *testing.T) {
 	t.Parallel()
-	//test := assert.New(t)
 
 	e := NewEncoder().dataPool.Get().(*encoder)
 
@@ -199,20 +186,17 @@ func TestGetTag3(t *testing.T) {
 	e.getTagNameAndOpts(field)
 
 	if len(e.tags) != 2 {
-		t.Error("expected 2 tags")
+		t.Errorf("expected 2 tags, got %d", len(e.tags))
 		t.FailNow()
 	}
 	if "ABC" != string(e.tags[0]) {
-		t.Error("expected tag name: ABC")
+		t.Errorf(`expected tag name: "ABC", got "%s"`, string(e.tags[0]))
 		t.FailNow()
 	}
 	if "omitempty" != string(e.tags[1]) {
-		t.Error("expected tag name: \"omitempty\"")
+		t.Errorf(`expected tag name: "omitempty", got "%s"`, string(e.tags[1]))
 		t.FailNow()
 	}
-	//test.Len(e.tags, 2)
-	//test.Equal("ABC", string(e.tags[0]))
-	//test.Equal("omitempty", string(e.tags[1]))
 }
 
 func TestEncodeInvalidValue(t *testing.T) {
@@ -241,7 +225,6 @@ func TestEncodeInvalidValue(t *testing.T) {
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
 			t.Parallel()
-			//test := assert.New(t)
 
 			encoder := NewEncoder()
 			_, err := encoder.Values(testCase.input)
@@ -249,12 +232,11 @@ func TestEncodeInvalidValue(t *testing.T) {
 				t.Error("expected error but actual is nil")
 				t.FailNow()
 			}
-			//test.Error(err)
 
 			values := make(url.Values)
 			err = encoder.Encode(testCase.input, values)
 			if err == nil {
-				t.Error("expected error but actual is nil")
+				t.Errorf("expected error but actual is nil")
 				t.FailNow()
 			}
 		})
@@ -263,7 +245,7 @@ func TestEncodeInvalidValue(t *testing.T) {
 
 func TestEncodeBasicVal(t *testing.T) {
 	t.Parallel()
-	//test := assert.New(t)
+
 	encoder := NewEncoder()
 
 	tm := time.Unix(600, 0).UTC()
@@ -290,13 +272,9 @@ func TestEncodeBasicVal(t *testing.T) {
 	}
 	values, err := encoder.Values(s)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("expected no error but got %v", err)
 		t.FailNow()
 	}
-	//if err != nil {
-	//	test.FailNow(err.Error())
-	//	return
-	//}
 	expected := url.Values{
 		"string":     []string{"abc"},
 		"bool":       []string{"true"},
@@ -321,12 +299,11 @@ func TestEncodeBasicVal(t *testing.T) {
 		t.Errorf("expected: %v, actual: %v", expected, values)
 		t.FailNow()
 	}
-	//assert.Equal(t, expected, values)
 }
 
 func TestEncodeBasicPtr(t *testing.T) {
 	t.Parallel()
-	//test := assert.New(t)
+
 	encoder := NewEncoder()
 
 	tm := time.Unix(600, 0).UTC()
@@ -353,18 +330,16 @@ func TestEncodeBasicPtr(t *testing.T) {
 	}
 	actualValues1, err := encoder.Values(s)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("expected no error but got %v", err)
 		t.FailNow()
 	}
-	//test.NoError(err)
 
 	actualValues2 := make(url.Values)
 	err = encoder.Encode(&s, actualValues2)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("expected no error but got %v", err)
 		t.FailNow()
 	}
-	//test.NoError(err)
 
 	expected := url.Values{
 		"string":     []string{"abc"},
@@ -395,24 +370,17 @@ func TestEncodeBasicPtr(t *testing.T) {
 		t.Errorf("expected: %v, actual: %v", expected, actualValues2)
 		t.FailNow()
 	}
-	//test.Equal(expected, actualValues1)
-	//test.Equal(expected, actualValues2)
 }
 
 func TestZeroVal(t *testing.T) {
 	t.Parallel()
-	//test := assert.New(t)
 	encoder := NewEncoder()
 
 	values, err := encoder.Values(basicVal{})
 	if err != nil {
-		t.Error(err)
+		t.Errorf("expected no error but got %v", err)
 		t.FailNow()
 	}
-	//if err != nil {
-	//	test.FailNow(err.Error())
-	//	return
-	//}
 	expected := url.Values{
 		"string":     []string{""},
 		"bool":       []string{"false"},
@@ -437,23 +405,17 @@ func TestZeroVal(t *testing.T) {
 		t.Errorf("expected %v, got %v", expected, values)
 		t.FailNow()
 	}
-	//test.Equal(expected, values)
 }
 
 func TestZeroPtr(t *testing.T) {
 	t.Parallel()
-	//test := assert.New(t)
 	encoder := NewEncoder()
 
 	values, err := encoder.Values(basicPtr{})
 	if err != nil {
-		t.Error(err)
+		t.Errorf("expected no error but got %v", err)
 		t.FailNow()
 	}
-	//if err != nil {
-	//	test.FailNow(err.Error())
-	//	return
-	//}
 	expected := url.Values{
 		"string":     []string{""},
 		"bool":       []string{""},
@@ -478,48 +440,40 @@ func TestZeroPtr(t *testing.T) {
 		t.Errorf("expected:  %v, actual: %v", expected, values)
 		t.FailNow()
 	}
-	//assert.Equal(t, expected, values)
 }
 
 func TestOmitZeroVal(t *testing.T) {
 	t.Parallel()
-	//test := assert.New(t)
 	encoder := NewEncoder()
 
 	values, err := encoder.Values(basicValWithOmit{})
 	if err != nil {
-		t.Error(err)
+		t.Errorf("expected no error but got %v", err)
 		t.FailNow()
 	}
 	if !reflect.DeepEqual(url.Values{}, values) {
-		t.Error("values should be empty")
+		t.Errorf("expected empty, got %v", values)
 		t.FailNow()
 	}
-	//test.NoError(err)
-	//test.Equal(url.Values{}, values)
 }
 
 func TestOmitZeroPtr(t *testing.T) {
 	t.Parallel()
-	//test := assert.New(t)
 	encoder := NewEncoder()
 
 	values, err := encoder.Values(basicPtrWithOmit{})
 	if err != nil {
-		t.Error(err)
+		t.Errorf("expected no error but got %v", err)
 		t.FailNow()
 	}
-	//test.NoError(err)
 	if !reflect.DeepEqual(url.Values{}, values) {
-		t.Error("values should not be empty")
+		t.Errorf("expected empty, got %v", values)
 		t.FailNow()
 	}
-	//test.Equal(url.Values{}, values)
 }
 
 func TestIgnoreEmptySlice(t *testing.T) {
 	t.Parallel()
-	//test := assert.New(t)
 	encoder := NewEncoder()
 
 	s := struct {
@@ -534,22 +488,17 @@ func TestIgnoreEmptySlice(t *testing.T) {
 
 	values, err := encoder.Values(s)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("expected no error but got %v", err)
 		t.FailNow()
 	}
-	//if err != nil {
-	//	test.FailNow(err.Error())
-	//	return
-	//}
 	if !reflect.DeepEqual(url.Values{}, values) {
+		t.Errorf("expected empty, got %v", values)
 		t.FailNow()
 	}
-	//test.Equal(url.Values{}, values)
 }
 
 func TestSliceValWithBasicVal(t *testing.T) {
 	t.Parallel()
-	//test := assert.New(t)
 	encoder := NewEncoder()
 
 	s := struct {
@@ -563,27 +512,22 @@ func TestSliceValWithBasicVal(t *testing.T) {
 	}
 	values, err := encoder.Values(s)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("expected no error but got %v", err)
 		t.FailNow()
 	}
-	//if err != nil {
-	//	test.FailNow(err.Error())
-	//	return
-	//}
 	expected := url.Values{
 		"str_list":  []string{"", "a", "b", "c"},
 		"bool_list": []string{"true", "false"},
 		"int_list":  []string{"0", "1", "2", "3"},
 	}
 	if !reflect.DeepEqual(expected, values) {
+		t.Errorf("expected %v, got %v", expected, values)
 		t.FailNow()
 	}
-	//assert.Equal(t, expected, values)
 }
 
 func TestSliceValWithBasicPtr(t *testing.T) {
 	t.Parallel()
-	//test := assert.New(t)
 	encoder := NewEncoder()
 
 	s := struct {
@@ -597,27 +541,22 @@ func TestSliceValWithBasicPtr(t *testing.T) {
 	}
 	values, err := encoder.Values(s)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("expected no error but got %v", err)
 		t.FailNow()
 	}
-	//if err != nil {
-	//	test.FailNow(err.Error())
-	//	return
-	//}
 	expected := url.Values{
 		"str_list":  []string{"", "a", "b", "c"},
 		"bool_list": []string{"true", "false"},
 		"int_list":  []string{"0", "1", "2", "3"},
 	}
 	if !reflect.DeepEqual(expected, values) {
+		t.Errorf("expected %v, got %v", expected, values)
 		t.FailNow()
 	}
-	//assert.Equal(t, expected, values)
 }
 
 func TestSlicePtrWithBasicVal(t *testing.T) {
 	t.Parallel()
-	//test := assert.New(t)
 	encoder := NewEncoder()
 
 	strList := []string{"", "a", "b", "c"}
@@ -635,28 +574,22 @@ func TestSlicePtrWithBasicVal(t *testing.T) {
 	}
 	values, err := encoder.Values(s)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("expected no error but got %v", err)
 		t.FailNow()
 	}
-	//if err != nil {
-	//	test.FailNow(err.Error())
-	//	return
-	//}
 	expected := url.Values{
 		"str_list":  []string{"", "a", "b", "c"},
 		"bool_list": []string{"true", "false"},
 		"int_list":  []string{"0", "1", "2", "3"},
 	}
 	if !reflect.DeepEqual(expected, values) {
+		t.Errorf("expected %v, got %v", expected, values)
 		t.FailNow()
 	}
-	//assert.Equal(t, expected, values)
 }
 
 func TestSlicePtrWithBasicPtr(t *testing.T) {
 	t.Parallel()
-
-	//test := assert.New(t)
 	encoder := NewEncoder()
 
 	strList := []*string{withStr(""), withStr("a"), withStr("b"), withStr("c")}
@@ -674,28 +607,22 @@ func TestSlicePtrWithBasicPtr(t *testing.T) {
 	}
 	values, err := encoder.Values(s)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("expected no error but got %v", err)
 		t.FailNow()
 	}
-	//if err != nil {
-	//	test.FailNow(err.Error())
-	//	return
-	//}
 	expected := url.Values{
 		"str_list":  []string{"", "a", "b", "c"},
 		"bool_list": []string{"true", "false"},
 		"int_list":  []string{"0", "1", "2", "3"},
 	}
 	if !reflect.DeepEqual(expected, values) {
+		t.Errorf("expected %v, got %v", expected, values)
 		t.FailNow()
 	}
-	//assert.Equal(t, expected, values)
 }
 
 func TestTimeFormat(t *testing.T) {
 	t.Parallel()
-
-	//test := assert.New(t)
 	encoder := NewEncoder()
 
 	tm := time.Unix(600, 0).UTC()
@@ -717,13 +644,9 @@ func TestTimeFormat(t *testing.T) {
 	}
 	values, err := encoder.Values(times)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("expected no error but got %v", err)
 		t.FailNow()
 	}
-	//if err != nil {
-	//	test.FailNow(err.Error())
-	//	return
-	//}
 	expected := url.Values{
 		"default_fmt":        []string{"1970-01-01T00:10:00Z"},
 		"default_second":     []string{"600"},
@@ -733,14 +656,13 @@ func TestTimeFormat(t *testing.T) {
 		"default_millis_ptr": []string{"600000"},
 	}
 	if !reflect.DeepEqual(expected, values) {
+		t.Errorf("expected %v, got %v", expected, values)
 		t.FailNow()
 	}
-	//assert.Equal(t, expected, values)
 }
 
 func TestBoolFormat(t *testing.T) {
 	t.Parallel()
-	//test := assert.New(t)
 	encoder := NewEncoder()
 
 	s := struct {
@@ -753,24 +675,22 @@ func TestBoolFormat(t *testing.T) {
 
 	values, err := encoder.Values(&s)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("expected no error but got %v", err)
 		t.FailNow()
 	}
-	//test.NoError(err)
 
 	expected := url.Values{
 		"bool_1": []string{"0"},
 		"bool_2": []string{"1"},
 	}
 	if !reflect.DeepEqual(expected, values) {
+		t.Errorf("expected %v, got %v", expected, values)
 		t.FailNow()
 	}
-	//test.Equal(expected, values)
 }
 
 func TestArrayFormat_Comma(t *testing.T) {
 	t.Parallel()
-	//test := assert.New(t)
 	encoder := NewEncoder()
 
 	tm := time.Unix(600, 0).UTC()
@@ -785,27 +705,22 @@ func TestArrayFormat_Comma(t *testing.T) {
 	}
 	values, err := encoder.Values(s)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("expected no error but got %v", err)
 		t.FailNow()
 	}
-	//if err != nil {
-	//	test.FailNow(err.Error())
-	//	return
-	//}
 	expected := url.Values{
 		"empty_list": []string{""},
 		"str_list":   []string{"a,b,c"},
 		"times":      []string{tm.Format(time.RFC3339)},
 	}
 	if !reflect.DeepEqual(expected, values) {
+		t.Errorf("expected %v, got %v", expected, values)
 		t.FailNow()
 	}
-	//assert.Equal(t, expected, values)
 }
 
 func TestArrayFormat_Repeat(t *testing.T) {
 	t.Parallel()
-	//test := assert.New(t)
 	encoder := NewEncoder()
 
 	tm := time.Unix(600, 0).UTC()
@@ -819,25 +734,21 @@ func TestArrayFormat_Repeat(t *testing.T) {
 	}
 	values, err := encoder.Values(s)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("expected no error but got %v", err)
 		t.FailNow()
 	}
-	//if err != nil {
-	//	test.FailNow(err.Error())
-	//	return
-	//}
 	expected := url.Values{
 		"str_list": []string{"a", "b", "c"},
 		"times":    []string{tm.Format(time.RFC3339)},
 	}
 	if !reflect.DeepEqual(expected, values) {
+		t.Errorf("expected %v, got %v", expected, values)
 		t.FailNow()
 	}
-	//assert.Equal(t, expected, values)
 }
 
 func TestArrayFormat_Bracket(t *testing.T) {
-	//test := assert.New(t)
+	t.Parallel()
 	encoder := NewEncoder()
 
 	tm := time.Unix(600, 0).UTC()
@@ -851,25 +762,21 @@ func TestArrayFormat_Bracket(t *testing.T) {
 	}
 	values, err := encoder.Values(s)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("expected no error but got %v", err)
 		t.FailNow()
 	}
-	//if err != nil {
-	//	test.FailNow(err.Error())
-	//	return
-	//}
 	expected := url.Values{
 		"str_list[]": []string{"a", "b", "c"},
 		"times[]":    []string{tm.Format(time.RFC3339)},
 	}
 	if !reflect.DeepEqual(expected, values) {
+		t.Errorf("expected %v, got %v", expected, values)
 		t.FailNow()
 	}
-	//assert.Equal(t, expected, values)
 }
 
 func TestArrayFormat_Index(t *testing.T) {
-	//test := assert.New(t)
+	t.Parallel()
 	encoder := NewEncoder()
 
 	tm := time.Unix(600, 0).UTC()
@@ -885,13 +792,9 @@ func TestArrayFormat_Index(t *testing.T) {
 	}
 	values, err := encoder.Values(s)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("expected no error but got %v", err)
 		t.FailNow()
 	}
-	//if err != nil {
-	//	test.FailNow(err.Error())
-	//	return
-	//}
 	expected := url.Values{
 		"str_list[0]": []string{"a"},
 		"str_list[1]": []string{"b"},
@@ -899,15 +802,13 @@ func TestArrayFormat_Index(t *testing.T) {
 		"times[0]":    []string{tm.Format(time.RFC3339)},
 	}
 	if !reflect.DeepEqual(expected, values) {
-		t.Errorf("Expected: %#v, Actual: %#v", expected, values)
+		t.Errorf("expected %v, got %v", expected, values)
 		t.FailNow()
 	}
-	//assert.Equal(t, expected, values)
 }
 
 func TestNestedStruct(t *testing.T) {
 	t.Parallel()
-	//test := assert.New(t)
 	encoder := NewEncoder()
 
 	tm := time.Unix(600, 0)
@@ -947,13 +848,9 @@ func TestNestedStruct(t *testing.T) {
 
 	values, err := encoder.Values(&s)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("expected no error but got %v", err)
 		t.FailNow()
 	}
-	//if err != nil {
-	//	test.FailNow(err.Error())
-	//	return
-	//}
 	expected := url.Values{
 		"nested[time]":       []string{"600"},
 		"nested_ptr[time]":   []string{"600"},
@@ -964,15 +861,13 @@ func TestNestedStruct(t *testing.T) {
 		"nest_list[1][name]": []string{"def"},
 	}
 	if !reflect.DeepEqual(expected, values) {
-		t.Errorf("expected: %#v, actual: %#v", expected, values)
+		t.Errorf("expected %v, got %v", expected, values)
 		t.FailNow()
 	}
-	//assert.Equal(t, expected, values)
 }
 
 func TestEncodeInterface(t *testing.T) {
 	t.Parallel()
-	//test := assert.New(t)
 	encoder := NewEncoder()
 
 	s := &struct {
@@ -991,10 +886,9 @@ func TestEncodeInterface(t *testing.T) {
 
 	values, err := encoder.Values(&s)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("expected no error but got %v", err)
 		t.FailNow()
 	}
-	//test.NoError(err)
 
 	expected := url.Values{
 		"string":  []string{"abc"},
@@ -1003,14 +897,13 @@ func TestEncodeInterface(t *testing.T) {
 		"nil_ptr": []string{""},
 	}
 	if !reflect.DeepEqual(expected, values) {
+		t.Errorf("expected %v, got %v", expected, values)
 		t.FailNow()
 	}
-	//test.Equal(expected, values)
 }
 
 func TestEncodeMap(t *testing.T) {
 	t.Parallel()
-	//test := assert.New(t)
 	encoder := NewEncoder()
 
 	s := struct {
@@ -1030,19 +923,18 @@ func TestEncodeMap(t *testing.T) {
 	}
 	values, err := encoder.Values(s)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("expected no error but got %v", err)
 		t.FailNow()
 	}
-	//test.NoError(err)
 
 	expected := url.Values{
 		"map[abc]":     []string{"true"},
 		"ptr_map[xyz]": []string{"false"},
 	}
 	if !reflect.DeepEqual(expected, values) {
+		t.Errorf("expected %v, got %v", expected, values)
 		t.FailNow()
 	}
-	//test.Equal(expected, values)
 }
 
 type Timestamp struct {
@@ -1070,7 +962,7 @@ func (t *TimestampPtr) IsZero() bool {
 }
 
 func TestEncodeCustomType(t *testing.T) {
-	//test := assert.New(t)
+	t.Parallel()
 	encoder := NewEncoder()
 
 	tm := time.Unix(0, 0).UTC()
@@ -1133,9 +1025,9 @@ func TestEncodeCustomType(t *testing.T) {
 
 	values, err := encoder.Values(&s)
 	if err != nil {
-		t.Fatal(err)
+		t.Errorf("expected no error but got %v", err)
+		t.FailNow()
 	}
-	//test.NoError(err)
 
 	expected := url.Values{
 		"zero_ts":               []string{""},
@@ -1155,9 +1047,9 @@ func TestEncodeCustomType(t *testing.T) {
 		"ts_ptr_index_list[1]":  []string{"1970-01-01T00:00:00Z"},
 	}
 	if !reflect.DeepEqual(expected, values) {
-		t.Fatal()
+		t.Errorf("expected %v, got %v", expected, values)
+		t.FailNow()
 	}
-	//test.Equal(expected, values)
 }
 
 type ErrTimestamp struct {
@@ -1174,8 +1066,6 @@ func (t *ErrTimestamp) IsZero() bool {
 
 func TestEncodeErrCustomType(t *testing.T) {
 	t.Parallel()
-
-	//test := assert.New(t)
 	encoder := NewEncoder()
 
 	tm := time.Unix(0, 0).UTC()
@@ -1246,117 +1136,124 @@ func TestEncodeErrCustomType(t *testing.T) {
 
 	values, err := encoder.Values(&s1)
 	if err == nil {
+		t.Errorf("expected error, got: %v", values)
 		t.FailNow()
 	}
-	//test.Error(err)
+
 	values = url.Values{}
 	err = encoder.Encode(&s1, values)
 	if err == nil {
+		t.Errorf("expected error, got: %v", values)
 		t.FailNow()
 	}
-	//test.Error(err)
 
 	values, err = encoder.Values(&s2)
 	if err == nil {
+		t.Errorf("expected error, got: %v", values)
 		t.FailNow()
 	}
-	//test.Error(err)
+
 	values = url.Values{}
 	err = encoder.Encode(&s2, values)
 	if err == nil {
+		t.Errorf("expected error, got: %v", values)
 		t.FailNow()
 	}
-	//test.Error(err)
 
 	values, err = encoder.Values(&s3)
 	if err == nil {
+		t.Errorf("expected error, got: %v", values)
 		t.FailNow()
 	}
-	//test.Error(err)
+
 	values = url.Values{}
 	err = encoder.Encode(&s3, values)
 	if err == nil {
+		t.Errorf("expected error, got: %v", values)
 		t.FailNow()
 	}
-	//test.Error(err)
 
 	values, err = encoder.Values(&s4)
 	if err == nil {
+		t.Errorf("expected error, got: %v", values)
 		t.FailNow()
 	}
-	//test.Error(err)
+
 	values = url.Values{}
 	err = encoder.Encode(&s4, values)
 	if err == nil {
+		t.Errorf("expected error, got: %v", values)
 		t.FailNow()
 	}
-	//test.Error(err)
 
 	values, err = encoder.Values(&s5)
 	if err == nil {
+		t.Errorf("expected error, got: %v", values)
 		t.FailNow()
 	}
-	//test.Error(err)
+
 	values = url.Values{}
 	err = encoder.Encode(&s5, values)
 	if err == nil {
+		t.Errorf("expected error, got: %v", values)
 		t.FailNow()
 	}
-	//test.Error(err)
 
 	values, err = encoder.Values(&s6)
 	if err == nil {
+		t.Errorf("expected error, got: %v", values)
 		t.FailNow()
 	}
-	//test.Error(err)
+
 	values = url.Values{}
 	err = encoder.Encode(&s6, values)
 	if err == nil {
+		t.Errorf("expected error, got: %v", values)
 		t.FailNow()
 	}
-	//test.Error(err)
 
 	values, err = encoder.Values(&s7)
 	if err == nil {
+		t.Errorf("expected error, got: %v", values)
 		t.FailNow()
 	}
-	//test.Error(err)
+
 	values = url.Values{}
 	err = encoder.Encode(&s7, values)
 	if err == nil {
+		t.Errorf("expected error, got: %v", values)
 		t.FailNow()
 	}
-	//test.Error(err)
 
 	values, err = encoder.Values(&s8)
 	if err == nil {
+		t.Errorf("expected error, got: %v", values)
 		t.FailNow()
 	}
-	//test.Error(err)
+
 	values = url.Values{}
 	err = encoder.Encode(&s8, values)
 	if err == nil {
+		t.Errorf("expected error, got: %v", values)
 		t.FailNow()
 	}
-	//test.Error(err)
 
 	values, err = encoder.Values(&s9)
 	if err == nil {
+		t.Errorf("expected error, got: %v", values)
 		t.FailNow()
 	}
-	//test.Error(err)
+
 	values = url.Values{}
 	err = encoder.Encode(&s9, values)
 	if err == nil {
+		t.Errorf("expected error, got: %v", values)
 		t.FailNow()
 	}
-	//test.Error(err)
 }
 
 func TestEncoderIgnoreUnregisterType(t *testing.T) {
 	t.Parallel()
-
-	//test := assert.New(t)
 	encoder := NewEncoder()
 
 	s := struct {
@@ -1373,15 +1270,13 @@ func TestEncoderIgnoreUnregisterType(t *testing.T) {
 
 	values, err := encoder.Values(s)
 	if err != nil {
-		t.Error(err)
+		t.Errorf("expected no error, got: %v", err)
 		t.FailNow()
 	}
 	if !reflect.DeepEqual(url.Values{}, values) {
+		t.Errorf("expected empty values, got: %v", values)
 		t.FailNow()
 	}
-	//test.NoError(err)
-
-	//test.Equal(url.Values{}, values)
 }
 
 //------------------------------------------------
