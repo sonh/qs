@@ -234,17 +234,7 @@ func TestEncodeInvalidValue(t *testing.T) {
 			}
 			// Assert err type and err message
 			if err, ok := err.(InvalidInputErr); ok {
-				var kind reflect.Kind
-				val := reflect.ValueOf(testCase.input)
-				for val.Kind() == reflect.Ptr {
-					if val.IsNil() {
-						kind = val.Kind()
-						break
-					}
-					kind = val.Kind()
-				}
-				expectedErrMessage := InvalidInputErr{InputKind: kind}.Error()
-
+				expectedErrMessage := InvalidInputErr{InputKind: getKindOfValue(testCase.input)}.Error()
 				if err.Error() != expectedErrMessage {
 					t.Errorf(`expected err message: "%v", got "%v"`, expectedErrMessage, err.Error())
 					t.FailNow()
@@ -262,6 +252,19 @@ func TestEncodeInvalidValue(t *testing.T) {
 			}
 		})
 	}
+}
+
+func getKindOfValue(v interface{}) reflect.Kind {
+	val := reflect.ValueOf(v)
+	if val.Kind() == reflect.Ptr {
+		for val.Kind() == reflect.Ptr {
+			if val.IsNil() {
+				return val.Kind()
+			}
+			val = val.Elem()
+		}
+	}
+	return val.Kind()
 }
 
 func TestEncodeBasicVal(t *testing.T) {
