@@ -232,6 +232,27 @@ func TestEncodeInvalidValue(t *testing.T) {
 				t.Error("expected error but actual is nil")
 				t.FailNow()
 			}
+			// Assert err type and err message
+			if err, ok := err.(InvalidInputErr); ok {
+				var kind reflect.Kind
+				val := reflect.ValueOf(testCase.input)
+				for val.Kind() == reflect.Ptr {
+					if val.IsNil() {
+						kind = val.Kind()
+						break
+					}
+					kind = val.Kind()
+				}
+				expectedErrMessage := InvalidInputErr{InputKind: kind}.Error()
+
+				if err.Error() != expectedErrMessage {
+					t.Errorf(`expected err message: "%v", got "%v"`, expectedErrMessage, err.Error())
+					t.FailNow()
+				}
+			} else {
+				t.Errorf("expected InvalidInputErr, got %v", err)
+				t.FailNow()
+			}
 
 			values := make(url.Values)
 			err = encoder.Encode(testCase.input, values)
