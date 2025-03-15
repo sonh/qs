@@ -10,5 +10,5 @@ type InvalidInputErr struct {
 }
 
 func (e InvalidInputErr) Error() string {
-	return fmt.Sprintf(`input should be struct type, got "%v" type`, e.InputKind)
+	return fmt.Sprintf(`input should be struct type, got "%v"`, e.InputKind)
 }

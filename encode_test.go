@@ -200,7 +200,7 @@ func TestGetTag3(t *testing.T) {
 }
 
 func TestEncodeInvalidValue(t *testing.T) {
-	t.Parallel()
+	//t.Parallel()
 
 	var ptr *string
 
@@ -224,8 +224,6 @@ func TestEncodeInvalidValue(t *testing.T) {
 
 	for _, testCase := range testCases {
 		t.Run(testCase.name, func(t *testing.T) {
-			t.Parallel()
-
 			encoder := NewEncoder()
 			_, err := encoder.Values(testCase.input)
 			if err == nil {
@@ -250,19 +248,28 @@ func TestEncodeInvalidValue(t *testing.T) {
 				t.Errorf("expected error but actual is nil")
 				t.FailNow()
 			}
+			// Assert err type and err message
+			if err, ok := err.(InvalidInputErr); ok {
+				expectedErrMessage := InvalidInputErr{InputKind: getKindOfValue(testCase.input)}.Error()
+				if err.Error() != expectedErrMessage {
+					t.Errorf(`expected err message: "%v", got "%v"`, expectedErrMessage, err.Error())
+					t.FailNow()
+				}
+			} else {
+				t.Errorf("expected InvalidInputErr, got %v", err)
+				t.FailNow()
+			}
 		})
 	}
 }
 
 func getKindOfValue(v interface{}) reflect.Kind {
 	val := reflect.ValueOf(v)
-	if val.Kind() == reflect.Ptr {
-		for val.Kind() == reflect.Ptr {
-			if val.IsNil() {
-				return val.Kind()
-			}
-			val = val.Elem()
+	for val.Kind() == reflect.Ptr {
+		if val.IsNil() {
+			return val.Kind()
 		}
+		val = val.Elem()
 	}
 	return val.Kind()
 }
