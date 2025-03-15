@@ -1,47 +1,73 @@
 package qs
 
 import (
-	"github.com/stretchr/testify/assert"
 	"reflect"
 	"testing"
 )
 
 func TestCacheStore(t *testing.T) {
-	test := assert.New(t)
+	t.Parallel()
 
 	s := &basicVal{}
 
 	cacheStore := newCacheStore()
-	test.NotNil(cacheStore)
+	if cacheStore == nil {
+		t.Error("cache store should not be nil")
+		t.FailNow()
+	}
 
 	fields := cachedFields{&float64Field{}}
 	cacheStore.Store(reflect.TypeOf(s), fields)
 	cachedFlds := cacheStore.Retrieve(reflect.TypeOf(s))
 
-	test.NotNil(cachedFlds)
-	test.Len(cachedFlds, len(fields))
-	test.True(&fields[0] == &cachedFlds[0])
+	if cachedFlds == nil {
+		t.Error("cache store should not be nil")
+		t.FailNow()
+	}
+	if len(cachedFlds) != len(fields) {
+		t.Error("cache store should have the same number of fields")
+		t.FailNow()
+	}
+	if &fields[0] != &cachedFlds[0] {
+		t.Error("cache store should have the same fields")
+		t.FailNow()
+	}
 }
 
 func TestNewCacheField(t *testing.T) {
-	test := assert.New(t)
+	t.Parallel()
+
 	name := []byte(`abc`)
 	opts := [][]byte{[]byte(`omitempty`)}
 
 	cacheField := newCachedFieldByKind(reflect.ValueOf("").Kind(), name, opts)
-	if stringField, ok := cacheField.(*stringField); ok {
-		test.Equal(string(name), stringField.name)
-		test.True(stringField.omitEmpty)
-	} else {
-		test.FailNow("")
+
+	strField, ok := cacheField.(*stringField)
+	if !ok {
+		t.Error("strField should be stringField")
+		t.FailNow()
 	}
-	test.IsType(&stringField{}, cacheField)
+	if string(name) != strField.name {
+		t.Errorf("strField.name should be %s, but %s", string(name), strField.name)
+		t.FailNow()
+	}
+	if !strField.omitEmpty {
+		t.Error("omitEmpty should be true")
+		t.FailNow()
+	}
+	if !reflect.DeepEqual(reflect.TypeOf(new(stringField)), reflect.TypeOf(cacheField)) {
+		t.Error("cache field is not of type *stringField")
+		t.FailNow()
+	}
 }
 
 func TestNewCacheField2(t *testing.T) {
-	test := assert.New(t)
+	t.Parallel()
 
 	var strPtr *string
 	cacheField := newCachedFieldByKind(reflect.ValueOf(strPtr).Kind(), nil, nil)
-	test.Nil(cacheField)
+	if cacheField != nil {
+		t.Error("expect cacheField to be nil")
+		t.FailNow()
+	}
 }
