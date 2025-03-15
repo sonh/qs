@@ -1,5 +1,6 @@
 coverage:
+  round: down
   status:
     patch:
       default:
-        target: 90%
+        target: 95%
