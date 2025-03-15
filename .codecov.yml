@@ -3,8 +3,13 @@ coverage:
   precision: 2
   status:
     project:
-      default: true
+      default:
+        threshold: 0.1%
+        branches:
+          - main
     patch:
       default:
         target: 90%
+        branches:
+          - main
 
