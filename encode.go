@@ -1,7 +1,6 @@
 package qs
 
 import (
-	"github.com/pkg/errors"
 	"net/url"
 	"reflect"
 	"strings"
@@ -80,14 +79,14 @@ func (e *Encoder) Values(v interface{}) (url.Values, error) {
 	val := reflect.ValueOf(v)
 	for val.Kind() == reflect.Ptr {
 		if val.IsNil() {
-			return nil, errors.Errorf("expects struct input, got %v", val.Kind())
+			return nil, InvalidInputErr{InputKind: val.Kind()}
 		}
 		val = val.Elem()
 	}
 
 	switch val.Kind() {
 	case reflect.Invalid:
-		return nil, errors.Errorf("expects struct input, got %v", val.Kind())
+		return nil, InvalidInputErr{InputKind: val.Kind()}
 	case reflect.Struct:
 		enc := e.dataPool.Get().(*encoder)
 		enc.values = make(url.Values)
@@ -99,7 +98,7 @@ func (e *Encoder) Values(v interface{}) (url.Values, error) {
 		e.dataPool.Put(enc)
 		return values, nil
 	default:
-		return nil, errors.Errorf("expects struct input, got %v", val.Kind())
+		return nil, InvalidInputErr{InputKind: val.Kind()}
 	}
 }
 
@@ -109,14 +108,14 @@ func (e *Encoder) Encode(v interface{}, values url.Values) error {
 	val := reflect.ValueOf(v)
 	for val.Kind() == reflect.Ptr {
 		if val.IsNil() {
-			return errors.Errorf("expects struct input, got %v", val.Kind())
+			return InvalidInputErr{InputKind: val.Kind()}
 		}
 		val = val.Elem()
 	}
 
 	switch val.Kind() {
 	case reflect.Invalid:
-		return errors.Errorf("expects struct input, got %v", val.Kind())
+		return InvalidInputErr{InputKind: val.Kind()}
 	case reflect.Struct:
 		enc := e.dataPool.Get().(*encoder)
 		err := enc.encodeStruct(val, values, nil)
@@ -125,7 +124,7 @@ func (e *Encoder) Encode(v interface{}, values url.Values) error {
 		}
 		return nil
 	default:
-		return errors.Errorf("expects struct input, got %v", val.Kind())
+		return InvalidInputErr{InputKind: val.Kind()}
 	}
 }
 
