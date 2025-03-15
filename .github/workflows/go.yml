@@ -1,4 +1,4 @@
-name: build
+name: build-test
 
 on:
   push:
@@ -7,8 +7,8 @@ on:
     branches: [ main ]
 
 jobs:
-  build-and-test:
-    name: Build
+  build-test:
+    name: Build & Test
     runs-on: ubuntu-latest
     timeout-minutes: 1
     steps:
