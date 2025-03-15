@@ -6,7 +6,7 @@
 [![PkgGoDev](https://pkg.go.dev/badge/github.com/sonh/qs)](https://pkg.go.dev/github.com/sonh/qs)
 [![MIT License](https://img.shields.io/badge/License-MIT-blue.svg)](https://github.com/sonh/qs/blob/main/LICENSE)
 
-Package sonh/qs encodes structs into url.Values.
+Zero-dependencies package to encodes structs into url.Values.
 
 ## Installation
 ```bash
