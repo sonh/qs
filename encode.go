@@ -135,7 +135,7 @@ func (e *encoder) encodeStruct(stVal reflect.Value, values url.Values, scope []b
 
 	if cachedFlds == nil {
 		cachedFlds = make(cachedFields, 0, stTyp.NumField())
-		e.structCaching(&cachedFlds, stVal, scope)
+		e.structCaching(&cachedFlds, stVal, scope, nestedFormatBracket)
 		e.e.cache.Store(stTyp, cachedFlds)
 	}
 
@@ -196,7 +196,7 @@ func (e *encoder) encodeStruct(stVal reflect.Value, values url.Values, scope []b
 	return nil
 }
 
-func (e *encoder) structCaching(fields *cachedFields, stVal reflect.Value, scope []byte) {
+func (e *encoder) structCaching(fields *cachedFields, stVal reflect.Value, scope []byte, notation nestedFormat) {
 
 	structTyp := getType(stVal)
 
@@ -217,10 +217,18 @@ func (e *encoder) structCaching(fields *cachedFields, stVal reflect.Value, scope
 
 		if string(scope) != "" {
 			scopedName := strings.Builder{}
-			scopedName.Write(scope)
-			scopedName.WriteRune('[')
-			scopedName.Write(e.tags[0])
-			scopedName.WriteRune(']')
+			switch notation {
+			case nestedFormatDot:
+				scopedName.Write(scope)
+				scopedName.WriteRune('.')
+				scopedName.Write(e.tags[0])
+			default:
+				scopedName.Write(scope)
+				scopedName.WriteRune('[')
+				scopedName.Write(e.tags[0])
+				scopedName.WriteRune(']')
+			}
+
 			e.tags[0] = e.tags[0][:0]
 			e.tags[0] = append(e.tags[0], scopedName.String()...)
 		}
@@ -245,11 +253,13 @@ func (e *encoder) structCaching(fields *cachedFields, stVal reflect.Value, scope
 			// Clear and set new scope
 			e.scope = e.scope[:0]
 			e.scope = append(e.scope, e.tags[0]...)
+			// How this struct's children should be scoped under its name
+			childNotation := nestedFormatFromOptions(e.tags[1:])
 			// New embed field
 			field := newEmbedField(fieldVal.NumField(), e.tags[0], e.tags[1:])
 			*fields = append(*fields, field)
 			// Recursive
-			e.structCaching(&field.cachedFields, fieldVal, e.scope)
+			e.structCaching(&field.cachedFields, fieldVal, e.scope, childNotation)
 		case reflect.Slice, reflect.Array:
 			//Slice element type
 			elemType := fieldTyp.Elem()
@@ -275,6 +285,15 @@ func (e *encoder) structCaching(fields *cachedFields, stVal reflect.Value, scope
 			*fields = append(*fields, newCachedFieldByKind(fieldTyp.Kind(), e.tags[0], e.tags[1:]))
 		}
 	}
+}
+
+func nestedFormatFromOptions(tagOptions [][]byte) nestedFormat {
+	for _, tagOption := range tagOptions {
+		if string(tagOption) == "dot" {
+			return nestedFormatDot
+		}
+	}
+	return nestedFormatBracket
 }
 
 func (e *encoder) getTagNameAndOpts(f reflect.StructField) {

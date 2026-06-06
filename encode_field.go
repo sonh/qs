@@ -24,6 +24,13 @@ const (
 	arrayFormatIndex
 )
 
+type nestedFormat uint8
+
+const (
+	nestedFormatBracket nestedFormat = iota // user[from]
+	nestedFormatDot                         // user.from
+)
+
 // other fields implement baseField
 type baseField struct {
 	name      string
@@ -237,7 +244,7 @@ func (e *encoder) newListField(elemTyp reflect.Type, tagName []byte, tagOptions 
 	}
 
 	if field, ok := listField.cachedField.(*embedField); ok {
-		e.structCaching(&field.cachedFields, reflect.Zero(elemTyp), nil)
+		e.structCaching(&field.cachedFields, reflect.Zero(elemTyp), nil, nestedFormatBracket)
 	}
 
 	return listField
@@ -307,7 +314,6 @@ func newMapField(keyType reflect.Type, valueType reflect.Type, tagName []byte, t
 	return field
 }
 
-//
 type boolField struct {
 	*baseField
 	useInt bool
