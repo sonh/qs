@@ -165,6 +165,19 @@ values, _ := encoder.Values(query)
 fmt.Println(values.Encode()) //(unescaped) output: "user[from]=1601623397728&user[verified]=true"
 ```
 
+By default, it uses the brackets, add the `dot` option to
+a nested struct field to scope its children with `.`:
+```go
+type Query struct {
+    User User `qs:"user,dot"`
+}
+
+values, _ := encoder.Values(query)
+fmt.Println(values.Encode()) //(unescaped) output: "user.from=1601623397728&user.verified=true"
+```
+The `dot` option applies only to the field it is declared on; nest it again on a
+deeper struct field to keep using dots (otherwise that level falls back to brackets).
+
 ### Custom Type
 Implement funcs:
 * `EncodeParam` to encode itself into query param.
