@@ -8,8 +8,9 @@ import (
 )
 
 type User struct {
-	Verified bool      `qs:"verified"`
-	From     time.Time `qs:"from,millis"`
+	Verified bool           `qs:"verified"`
+	From     time.Time      `qs:"from,millis"`
+	Roles    map[string]int `qs:"roles"`
 }
 
 type Query struct {
@@ -23,6 +24,10 @@ func main() {
 		User: User{
 			Verified: true,
 			From:     time.Now(),
+			Roles: map[string]int{
+				"admin":  1,
+				"member": 2,
+			},
 		},
 	}
 
@@ -33,5 +38,7 @@ func main() {
 		fmt.Println("failed")
 		return
 	}
-	fmt.Println(values.Encode()) // (unescaped) output: "user.from=1601623397728&user.verified=true"
+	// (unescaped) output:
+	// user.from=1601623397728&user.roles[admin]=1&user.roles[member]=2&user.verified=true
+	fmt.Println(values.Encode())
 }
