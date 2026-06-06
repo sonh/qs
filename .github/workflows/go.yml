@@ -34,7 +34,7 @@ jobs:
       run: go build -v .
 
     - name: Test
-      run: go test -v -coverprofile=coverage.out .
+      run: go test -count=3 -v -coverprofile=coverage.out .
 
     - name: Codecov
       uses: codecov/codecov-action@v4
