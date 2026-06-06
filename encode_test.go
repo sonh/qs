@@ -200,7 +200,7 @@ func TestGetTag3(t *testing.T) {
 }
 
 func TestEncodeInvalidValue(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 
 	var ptr *string
 
@@ -223,7 +223,9 @@ func TestEncodeInvalidValue(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
+		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
 			encoder := NewEncoder()
 			_, err := encoder.Values(testCase.input)
 			if err == nil {
