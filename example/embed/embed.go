@@ -2,17 +2,21 @@ package main
 
 import (
 	"fmt"
-	"github.com/sonh/qs"
 	"time"
+
+	"github.com/sonh/qs"
 )
 
 type User struct {
-	Verified bool      `qs:"verified"`
-	From     time.Time `qs:"from,millis"`
+	Verified bool           `qs:"verified"`
+	From     time.Time      `qs:"from,millis"`
+	Roles    map[string]int `qs:"roles"`
 }
 
 type Query struct {
-	User User `qs:"user"`
+	// The "dot" option encodes the nested struct using dot-notation keys
+	// (user.verified) instead of the default bracket scoping (user[verified]).
+	User User `qs:"user,dot"`
 }
 
 func main() {
@@ -20,6 +24,10 @@ func main() {
 		User: User{
 			Verified: true,
 			From:     time.Now(),
+			Roles: map[string]int{
+				"admin":  1,
+				"member": 2,
+			},
 		},
 	}
 
@@ -30,5 +38,7 @@ func main() {
 		fmt.Println("failed")
 		return
 	}
+	// (unescaped) output:
+	// user.from=1601623397728&user.roles[admin]=1&user.roles[member]=2&user.verified=true
 	fmt.Println(values.Encode())
 }

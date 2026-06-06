@@ -13,12 +13,12 @@ Use `WithTagAlias()` func to register custom tag alias (default is `qs`)
 Encoder has `.Values()` and `Encode()` functions to encode structs into url.Values.
 
 Supported data types:
-	- all basic types (`bool`, `uint`, `string`, `float64`,...)
-	- struct
-	- slice/array
-	- pointer
-	- time.Time
-	- custom type
+  - all basic types (`bool`, `uint`, `string`, `float64`,...)
+  - struct
+  - slice/array
+  - pointer
+  - time.Time
+  - custom type
 
 Example
 
@@ -107,7 +107,6 @@ Including the `bracket` option to signal that the multiple URL values should hav
 	values, _ := encoder.Values(&Query{Tags: []string{"foo","bar"}})
 	fmt.Println(values.Encode()) //(unescaped) output: "tags[]=foo&tags[]=bar"
 
-
 The `index` option will append an index number with brackets to value name
 
 	type Query struct {
@@ -116,7 +115,6 @@ The `index` option will append an index number with brackets to value name
 
 	values, _ := encoder.Values(&Query{Tags: []string{"foo","bar"}})
 	fmt.Println(values.Encode()) //(unescaped) output: "tags[0]=foo&tags[1]=bar"
-
 
 All nested structs are encoded including the parent value name with brackets for scoping.
 
@@ -138,6 +136,16 @@ All nested structs are encoded including the parent value name with brackets for
 	values, _ := encoder.Values(querys)
 	fmt.Println(values.Encode()) //(unescaped) output: "user[from]=1601623397728&user[verified]=true"
 
+Add the `dot` option to a nested struct field to scope its children with dot
+notation instead of brackets. The option applies only to the field it is
+declared on; nest it again on a deeper struct field to keep using dots.
+
+	type Query struct {
+		User User `qs:"user,dot"`
+	}
+
+	values, _ := encoder.Values(querys)
+	fmt.Println(values.Encode()) //(unescaped) output: "user.from=1601623397728&user.verified=true"
 
 Custom type
 Implement `EncodeParam` to encode itself into query param.
@@ -177,10 +185,9 @@ Implement `IsZero` to check whether an object is zero to determine whether it sh
 	}
 	fmt.Println(values.Encode()) //(unescaped) output: "user=sonhuynh"
 
-
 Limitation
-	- `interface`, `[]interface`, `map` are not supported yet
-	- `struct`, `slice`/`array` multi-level nesting are limited
-	- no decoder yet
+  - `interface`, `[]interface`, `map` are not supported yet
+  - `struct`, `slice`/`array` multi-level nesting are limited
+  - no decoder yet
 */
 package qs

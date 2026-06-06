@@ -200,7 +200,7 @@ func TestGetTag3(t *testing.T) {
 }
 
 func TestEncodeInvalidValue(t *testing.T) {
-	//t.Parallel()
+	t.Parallel()
 
 	var ptr *string
 
@@ -223,7 +223,9 @@ func TestEncodeInvalidValue(t *testing.T) {
 	}
 
 	for _, testCase := range testCases {
+		testCase := testCase
 		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
 			encoder := NewEncoder()
 			_, err := encoder.Values(testCase.input)
 			if err == nil {
@@ -890,6 +892,67 @@ func TestNestedStruct(t *testing.T) {
 		"nest_list[0][name]": []string{"abc"},
 		"nest_list[1][time]": []string{"600"},
 		"nest_list[1][name]": []string{"def"},
+	}
+	if !reflect.DeepEqual(expected, values) {
+		t.Errorf("expected %v, got %v", expected, values)
+		t.FailNow()
+	}
+}
+
+func TestNestedStructDotNotation(t *testing.T) {
+	t.Parallel()
+	encoder := NewEncoder()
+
+	tm := time.Unix(600, 0)
+
+	type Geo struct {
+		Lat string `qs:"lat"`
+	}
+
+	type Addr struct {
+		City string `qs:"city"`
+	}
+
+	type User struct {
+		Verified bool      `qs:"verified"`
+		From     time.Time `qs:"from,second"`
+		Name     *string   `qs:"name,omitempty"`
+		Addr     Addr      `qs:"addr,dot"` // dot cascades only because declared again
+		Geo      Geo       `qs:"geo"`      // no dot -> brackets even under a dot parent
+	}
+
+	s := struct {
+		User    User  `qs:"user,dot"`
+		UserPtr *User `qs:"user_ptr,dot"`
+	}{
+		User: User{
+			Verified: true,
+			From:     tm,
+			Addr:     Addr{City: "hcm"},
+			Geo:      Geo{Lat: "10.5"},
+		},
+		UserPtr: &User{
+			Verified: false,
+			From:     tm,
+			Addr:     Addr{City: "hn"},
+			Geo:      Geo{Lat: "21.0"},
+		},
+	}
+
+	values, err := encoder.Values(&s)
+	if err != nil {
+		t.Errorf("expected no error but got %v", err)
+		t.FailNow()
+	}
+	expected := url.Values{
+		"user.verified":      []string{"true"},
+		"user.from":          []string{"600"},
+		"user.addr.city":     []string{"hcm"},
+		"user.geo[lat]":      []string{"10.5"},
+		"user_ptr.verified":  []string{"false"},
+		"user_ptr.from":      []string{"600"},
+		"user_ptr.addr.city": []string{"hn"},
+		"user_ptr.geo[lat]":  []string{"21.0"},
 	}
 	if !reflect.DeepEqual(expected, values) {
 		t.Errorf("expected %v, got %v", expected, values)

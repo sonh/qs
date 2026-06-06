@@ -22,19 +22,26 @@ jobs:
     - name: Check out code into the Go module directory
       uses: actions/checkout@v4
 
-    - name: Get dependencies
+    - name: Download dependencies
+      run: go mod download
+
+    - name: Verify formatting
       run: |
-        go get -v -t -d ./...
-        if [ -f Gopkg.toml ]; then
-            curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
-            dep ensure
+        unformatted=$(gofmt -l .)
+        if [ -n "$unformatted" ]; then
+          echo "These files are not gofmt-formatted:"
+          echo "$unformatted"
+          exit 1
         fi
 
+    - name: Vet
+      run: go vet ./...
+
     - name: Build
-      run: go build -v .
+      run: go build -v ./...
 
     - name: Test
-      run: go test -v -coverprofile=coverage.out .
+      run: go test -count=3 -v -coverprofile=coverage.out .
 
     - name: Codecov
       uses: codecov/codecov-action@v4
