@@ -135,7 +135,7 @@ func (e *encoder) encodeStruct(stVal reflect.Value, values url.Values, scope []b
 
 	if cachedFlds == nil {
 		cachedFlds = make(cachedFields, 0, stTyp.NumField())
-		e.structCaching(&cachedFlds, stVal, scope, nestedFormatBracket)
+		e.structCaching(&cachedFlds, nestedFormatBracket, scope, stVal)
 		e.e.cache.Store(stTyp, cachedFlds)
 	}
 
@@ -196,7 +196,7 @@ func (e *encoder) encodeStruct(stVal reflect.Value, values url.Values, scope []b
 	return nil
 }
 
-func (e *encoder) structCaching(fields *cachedFields, stVal reflect.Value, scope []byte, notation nestedFormat) {
+func (e *encoder) structCaching(fields *cachedFields, notation nestedFormat, scope []byte, stVal reflect.Value) {
 
 	structTyp := getType(stVal)
 
@@ -259,7 +259,7 @@ func (e *encoder) structCaching(fields *cachedFields, stVal reflect.Value, scope
 			field := newEmbedField(fieldVal.NumField(), e.tags[0], e.tags[1:])
 			*fields = append(*fields, field)
 			// Recursive
-			e.structCaching(&field.cachedFields, fieldVal, e.scope, childNotation)
+			e.structCaching(&field.cachedFields, childNotation, e.scope, fieldVal)
 		case reflect.Slice, reflect.Array:
 			//Slice element type
 			elemType := fieldTyp.Elem()

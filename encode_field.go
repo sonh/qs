@@ -244,7 +244,7 @@ func (e *encoder) newListField(elemTyp reflect.Type, tagName []byte, tagOptions 
 	}
 
 	if field, ok := listField.cachedField.(*embedField); ok {
-		e.structCaching(&field.cachedFields, reflect.Zero(elemTyp), nil, nestedFormatBracket)
+		e.structCaching(&field.cachedFields, nestedFormatBracket, nil, reflect.Zero(elemTyp))
 	}
 
 	return listField
