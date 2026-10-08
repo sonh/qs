@@ -212,6 +212,7 @@ func (e *encoder) structCaching(fields *cachedFields, notation nestedFormat, sco
 		e.getTagNameAndOpts(structField)
 
 		if string(e.tags[0]) == "-" { // ignored field
+			*fields = append(*fields, nil)
 			continue
 		}
 
