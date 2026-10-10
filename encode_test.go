@@ -112,6 +112,168 @@ func TestIgnore(t *testing.T) {
 	}
 }
 
+func TestIgnoreFieldPositions(t *testing.T) {
+	t.Parallel()
+
+	type nested struct {
+		Ignore string `qs:"-"`
+		Name   string `qs:"name"`
+	}
+
+	testCases := []struct {
+		name     string
+		input    interface{}
+		options  []EncoderOption
+		expected url.Values
+	}{
+		{
+			name: "leading",
+			input: struct {
+				Ignore string `qs:"-"`
+				Name   string `qs:"name"`
+			}{Ignore: "ignored", Name: "alice"},
+			expected: url.Values{"name": []string{"alice"}},
+		},
+		{
+			name: "middle",
+			input: struct {
+				First  string `qs:"first"`
+				Ignore string `qs:"-"`
+				Last   string `qs:"last"`
+			}{First: "alice", Ignore: "ignored", Last: "smith"},
+			expected: url.Values{
+				"first": []string{"alice"},
+				"last":  []string{"smith"},
+			},
+		},
+		{
+			name: "consecutive",
+			input: struct {
+				Ignore1 string `qs:"-"`
+				Ignore2 string `qs:"-"`
+				Name    string `qs:"name"`
+			}{Ignore1: "ignored1", Ignore2: "ignored2", Name: "alice"},
+			expected: url.Values{"name": []string{"alice"}},
+		},
+		{
+			name: "different field types",
+			input: struct {
+				Ignore string `qs:"-"`
+				Limit  int    `qs:"limit"`
+			}{Ignore: "ignored", Limit: 24},
+			expected: url.Values{"limit": []string{"24"}},
+		},
+		{
+			name: "trailing",
+			input: struct {
+				Name   string `qs:"name"`
+				Ignore string `qs:"-"`
+			}{Name: "alice", Ignore: "ignored"},
+			expected: url.Values{"name": []string{"alice"}},
+		},
+		{
+			name: "all ignored",
+			input: struct {
+				Name  string `qs:"-"`
+				Limit int    `qs:"-"`
+			}{Name: "ignored", Limit: 24},
+			expected: url.Values{},
+		},
+		{
+			name: "nested brackets",
+			input: struct {
+				User nested `qs:"user"`
+			}{User: nested{Ignore: "ignored", Name: "alice"}},
+			expected: url.Values{"user[name]": []string{"alice"}},
+		},
+		{
+			name: "nested dots",
+			input: struct {
+				User nested `qs:"user,dot"`
+			}{User: nested{Ignore: "ignored", Name: "alice"}},
+			expected: url.Values{"user.name": []string{"alice"}},
+		},
+		{
+			name: "nested pointer",
+			input: struct {
+				User *nested `qs:"user"`
+			}{User: &nested{Ignore: "ignored", Name: "alice"}},
+			expected: url.Values{"user[name]": []string{"alice"}},
+		},
+		{
+			name: "indexed struct slice",
+			input: struct {
+				Users []nested `qs:"users,index"`
+			}{Users: []nested{
+				{Ignore: "ignored1", Name: "alice"},
+				{Ignore: "ignored2", Name: "bob"},
+			}},
+			expected: url.Values{
+				"users[0][name]": []string{"alice"},
+				"users[1][name]": []string{"bob"},
+			},
+		},
+		{
+			name: "adjacent unexported fields",
+			input: struct {
+				before string
+				Ignore string `qs:"-"`
+				after  string
+				Name   string `qs:"name"`
+			}{before: "before", Ignore: "ignored", after: "after", Name: "alice"},
+			expected: url.Values{"name": []string{"alice"}},
+		},
+		{
+			name: "custom tag alias",
+			input: struct {
+				Ignore string `form:"-"`
+				Name   string `form:"name"`
+			}{Ignore: "ignored", Name: "alice"},
+			options:  []EncoderOption{WithTagAlias("form")},
+			expected: url.Values{"name": []string{"alice"}},
+		},
+	}
+
+	for _, testCase := range testCases {
+		testCase := testCase
+		t.Run(testCase.name, func(t *testing.T) {
+			t.Parallel()
+
+			for _, method := range []string{"Values", "Encode"} {
+				method := method
+				t.Run(method, func(t *testing.T) {
+					encoder := NewEncoder(testCase.options...)
+					for _, cache := range []string{"cold", "warm"} {
+						t.Run(cache, func(t *testing.T) {
+							defer func() {
+								if recovered := recover(); recovered != nil {
+									t.Errorf("unexpected panic: %v", recovered)
+								}
+							}()
+
+							values := make(url.Values)
+							var err error
+							if method == "Values" {
+								values, err = encoder.Values(testCase.input)
+							} else {
+								err = encoder.Encode(testCase.input, values)
+							}
+							if err != nil {
+								t.Errorf("expected no error, got %v", err)
+								t.FailNow()
+							}
+							if !reflect.DeepEqual(testCase.expected, values) {
+								t.Errorf("expected %v, got %v", testCase.expected, values)
+								t.FailNow()
+							}
+						})
+					}
+				})
+			}
+		})
+	}
+}
+
 func TestWithTagAlias(t *testing.T) {
 	t.Parallel()
 
